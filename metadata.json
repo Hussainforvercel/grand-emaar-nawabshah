@@ -1,0 +1,6 @@
+{
+  "name": "Grand Emaar Hotel Nawabshah",
+  "description": "Premium restaurant and rest house website for Grand Emaar Hotel Nawabshah. Nawabshah's first Two-Star hotel offering dynamic food menus and comfortable room bookings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
