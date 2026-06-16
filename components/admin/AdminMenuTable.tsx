@@ -2,14 +2,21 @@
 
 import React from 'react';
 import { MenuItem } from '@/types/menu';
-import { Edit2, Trash2, Eye, EyeOff, UtensilsCrossed } from 'lucide-react';
-import Image from 'next/image';
+import { Edit2, Trash2, UtensilsCrossed } from 'lucide-react';
 
 interface AdminMenuTableProps {
   items: MenuItem[];
   onEdit: (item: MenuItem) => void;
   onDelete: (id: string | undefined, name: string) => void;
 }
+
+const getSafeImageSrc = (item: MenuItem) => {
+  if (item.image_url && item.image_url.trim() !== '') {
+    return item.image_url.trim();
+  }
+
+  return `https://picsum.photos/seed/${encodeURIComponent(item.name || 'dish')}/100/100`;
+};
 
 export default function AdminMenuTable({
   items,
@@ -20,9 +27,14 @@ export default function AdminMenuTable({
     return (
       <div className="text-center py-16 bg-white border border-dashed rounded-sm border-neutral-300 max-w-lg mx-auto space-y-4">
         <UtensilsCrossed className="w-12 h-12 text-[#C5A059] mx-auto opacity-40 animate-pulse" />
-        <h3 className="font-serif text-lg font-bold text-neutral-800">No Dishes in the System</h3>
+
+        <h3 className="font-serif text-lg font-bold text-neutral-800">
+          No Dishes in the System
+        </h3>
+
         <p className="text-sm text-neutral-400 font-light max-w-sm mx-auto leading-relaxed">
-          Create some mouthwatering Pakistan Handis, Chinese sautés or sweet desserts by clicking the {"\"Add New Dish\""} button above.
+          Create some mouthwatering Pakistan Handis, Chinese sautés or sweet
+          desserts by clicking the {"\"Add New Dish\""} button above.
         </p>
       </div>
     );
@@ -42,31 +54,45 @@ export default function AdminMenuTable({
               <th className="py-4 px-6 text-right">Actions</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-neutral-100 text-neutral-700 text-sm">
             {items.map((item, idx) => {
-              const imageSrc = item.image_url || `https://picsum.photos/seed/${encodeURIComponent(item.name)}/100/100`;
+              const imageSrc = getSafeImageSrc(item);
 
               return (
-                <tr key={item.id || item.name} className="hover:bg-neutral-50/50 transition-colors">
-                  
+                <tr
+                  key={item.id || `${item.name}-${idx}`}
+                  className="hover:bg-neutral-50/50 transition-colors"
+                >
                   {/* Photo thumbnail cell */}
                   <td className="py-4 px-6">
                     <div className="relative w-12 h-12 rounded-sm overflow-hidden border border-neutral-200 select-none bg-neutral-100">
-                      <Image
+                      <img
                         src={imageSrc}
-                        alt={item.name}
-                        fill
+                        alt={item.name || 'Dish image'}
                         referrerPolicy="no-referrer"
-                        className="object-cover"
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
+                            item.name || 'dish'
+                          )}/100/100`;
+                        }}
                       />
                     </div>
                   </td>
 
                   {/* Name column */}
                   <td className="py-4 px-6 font-medium">
-                    <div className="font-semibold text-neutral-900">{item.name}</div>
+                    <div className="font-semibold text-neutral-900">
+                      {item.name}
+                    </div>
+
                     {item.description && (
-                      <div className="text-xs text-neutral-400 font-light max-w-xs truncate">{item.description}</div>
+                      <div className="text-xs text-neutral-400 font-light max-w-xs truncate">
+                        {item.description}
+                      </div>
                     )}
                   </td>
 
@@ -79,7 +105,7 @@ export default function AdminMenuTable({
 
                   {/* Price cell */}
                   <td className="py-4 px-6 font-mono font-medium">
-                    Rs. {Number(item.price).toLocaleString()}
+                    Rs. {Number(item.price || 0).toLocaleString()}
                   </td>
 
                   {/* Status Cell */}
@@ -100,15 +126,15 @@ export default function AdminMenuTable({
                   {/* Action buttons */}
                   <td className="py-4 px-6 text-right">
                     <div className="inline-flex gap-2 justify-end">
-                      
                       {/* Edit Button */}
                       <button
                         onClick={() => onEdit(item)}
                         id={`btn-edit-dish-${idx}`}
                         className="p-2 border border-neutral-200 hover:border-[#C5A059] hover:bg-[#C5A059]/5 text-neutral-500 hover:text-[#C5A059] rounded transition-colors cursor-pointer select-none"
                         title="Edit Dish Info"
+                        type="button"
                       >
-                        <Edit2 className="w-3.8 h-3.8" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
 
                       {/* Delete Button */}
@@ -117,13 +143,12 @@ export default function AdminMenuTable({
                         id={`btn-delete-dish-${idx}`}
                         className="p-2 border border-neutral-200 hover:border-red-500 hover:bg-red-50 text-neutral-500 hover:text-red-600 rounded transition-colors cursor-pointer select-none"
                         title="Delete Product"
+                        type="button"
                       >
-                        <Trash2 className="w-3.8 h-3.8" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
-
                     </div>
                   </td>
-
                 </tr>
               );
             })}
