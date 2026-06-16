@@ -8,7 +8,7 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminMenuForm from '@/components/admin/AdminMenuForm';
 import AdminMenuTable from '@/components/admin/AdminMenuTable';
-import { Plus, Library, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Library, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Shared default fallback items
@@ -84,9 +84,6 @@ type MenuFormPayload = Omit<MenuItem, 'id' | 'created_at'> & {
 };
 
 function cleanMenuPayload(dishData: MenuFormPayload) {
-  // Important:
-  // id, created_at, updated_at database ke auto/generated fields hain.
-  // Insert/update ke waqt inko Supabase mein send nahi karna.
   const { id, created_at, updated_at, ...rest } = dishData as any;
 
   const priceNumber = Number(rest.price);
@@ -119,24 +116,26 @@ export default function AdminDashboardPage() {
   const [isDemoMode, setIsDemoMode] = useState(!isSupabaseConfigured);
   const [isLoading, setIsLoading] = useState(true);
 
-  // UI States
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Feedback banners
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
   const router = useRouter();
 
-  // Read dishes list
+  const closeFormModal = () => {
+    if (isSubmitting) return;
+    setIsFormOpen(false);
+    setEditingItem(null);
+  };
+
   const fetchDishes = async () => {
     setIsLoading(true);
     setErrorStatus(null);
 
     if (!isSupabaseConfigured || !supabase) {
-      // Offline LocalStorage management
       const localMenu = localStorage.getItem('grand_emaar_custom_menu_items');
 
       if (localMenu) {
@@ -150,7 +149,6 @@ export default function AdminDashboardPage() {
           );
         }
       } else {
-        // First initialization in Demo mode
         setItems(defaultMenuDishes);
         localStorage.setItem(
           'grand_emaar_custom_menu_items',
@@ -168,16 +166,12 @@ export default function AdminDashboardPage() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       setItems(data || []);
     } catch (err: any) {
       console.error('Error fetching admin dishes:', err);
       setErrorStatus(err.message || 'Failed to read database menu catalog.');
-
-      // Graceful fallback to default items
       setItems(defaultMenuDishes);
     } finally {
       setIsLoading(false);
@@ -185,7 +179,6 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    // Authorize session
     if (isSupabaseConfigured && supabase) {
       setIsDemoMode(false);
 
@@ -198,7 +191,6 @@ export default function AdminDashboardPage() {
         }
       });
     } else {
-      // In Demo Mode, verify offline local token
       const offlineSession = localStorage.getItem('grand_emaar_demo_session');
 
       if (!offlineSession) {
@@ -215,8 +207,37 @@ export default function AdminDashboardPage() {
         fetchDishes();
       }
     }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  // Popup open hone par background page scroll lock
+  useEffect(() => {
+    if (isFormOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFormOpen]);
+
+  // ESC key se popup close
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFormOpen && !isSubmitting) {
+        closeFormModal();
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isFormOpen, isSubmitting]);
 
   const showBanner = (msg: string, isError = false) => {
     if (isError) {
@@ -227,14 +248,12 @@ export default function AdminDashboardPage() {
       setErrorStatus(null);
     }
 
-    // Auto clear feedback after 4 seconds
     setTimeout(() => {
       setSuccessMsg(null);
       setErrorStatus(null);
     }, 4500);
   };
 
-  // Create or Update dish
   const handleFormSubmit = async (dishData: MenuFormPayload) => {
     setIsSubmitting(true);
     setSuccessMsg(null);
@@ -258,11 +277,9 @@ export default function AdminDashboardPage() {
     }
 
     if (isDemoMode) {
-      // Simulation state database updates
       const updatedList = [...items];
 
       if (dishId) {
-        // Editing Mode
         const editIdx = updatedList.findIndex((item) => item.id === dishId);
 
         if (editIdx > -1) {
@@ -275,7 +292,6 @@ export default function AdminDashboardPage() {
           showBanner(`Successfully edited dish "${dishData.name}"!`);
         }
       } else {
-        // Adding Mode
         const newDish: MenuItem = {
           ...dishData,
           id: `local-${Date.now()}`,
@@ -286,12 +302,12 @@ export default function AdminDashboardPage() {
         showBanner(`Successfully published fresh selection "${dishData.name}"!`);
       }
 
-      // Sync both lists
       setItems(updatedList);
       localStorage.setItem(
         'grand_emaar_custom_menu_items',
         JSON.stringify(updatedList)
       );
+
       setIsFormOpen(false);
       setEditingItem(null);
       setIsSubmitting(false);
@@ -304,13 +320,10 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    // Direct Supabase integration flow
     try {
       const cleanedPayload = cleanMenuPayload(dishData);
 
       if (dishId) {
-        // UPDATE
-        // id ko update payload mein send nahi karna.
         const { error } = await supabase
           .from('menu_items')
           .update(cleanedPayload)
@@ -320,9 +333,6 @@ export default function AdminDashboardPage() {
 
         showBanner(`Successfully updated dish "${dishData.name}" in database!`);
       } else {
-        // INSERT
-        // id ko insert payload mein send nahi karna.
-        // Supabase/Postgres gen_random_uuid() se id khud generate karega.
         const { error } = await supabase
           .from('menu_items')
           .insert([cleanedPayload]);
@@ -336,7 +346,7 @@ export default function AdminDashboardPage() {
 
       setIsFormOpen(false);
       setEditingItem(null);
-      fetchDishes(); // Refresh data grid
+      fetchDishes();
     } catch (err: any) {
       console.error('Error adding/updating dish:', err);
       showBanner(err.message || 'Failed to save menu changes.', true);
@@ -345,7 +355,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Delete dish from registry
   const handleDeleteDish = async (id: string | undefined, name: string) => {
     if (!id) return;
 
@@ -387,19 +396,16 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Open form for fresh addition
   const handleAddNewClick = () => {
     setEditingItem(null);
     setIsFormOpen(true);
   };
 
-  // Open form for edition
   const handleEditClick = (item: MenuItem) => {
     setEditingItem(item);
     setIsFormOpen(true);
   };
 
-  // Handle Log Out flow
   const handleLogout = async () => {
     const confirmation = window.confirm(
       'Are you sure you want to log out of the administration panel?'
@@ -424,20 +430,16 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex h-screen bg-[#F9F6F0]/20 overflow-hidden font-sans">
-      {/* Sidebar layouts */}
       <AdminSidebar
         onLogout={handleLogout}
         adminEmail={adminEmail}
         isDemoMode={isDemoMode}
       />
 
-      {/* Main dashboard content side */}
       <main className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col justify-between">
         <div className="space-y-8">
-          {/* Header block status */}
           <AdminHeader items={items} />
 
-          {/* Feedback panels */}
           <AnimatePresence mode="wait">
             {successMsg && (
               <motion.div
@@ -464,7 +466,6 @@ export default function AdminDashboardPage() {
             )}
           </AnimatePresence>
 
-          {/* Core admin actions bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-2 text-neutral-800">
               <Library className="w-5 h-5 text-[#C5A059]" />
@@ -473,42 +474,18 @@ export default function AdminDashboardPage() {
               </h2>
             </div>
 
-            {!isFormOpen && (
-              <button
-                onClick={handleAddNewClick}
-                id="btn-add-new-dish"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white font-bold text-xs uppercase tracking-widest transition-colors shadow-md rounded-sm cursor-pointer"
-              >
-                <Plus className="w-4 h-4 shrink-0" />
-                <span>Add New Dish</span>
-              </button>
-            )}
+            <button
+              onClick={handleAddNewClick}
+              id="btn-add-new-dish"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white font-bold text-xs uppercase tracking-widest transition-colors shadow-md rounded-sm cursor-pointer"
+              type="button"
+            >
+              <Plus className="w-4 h-4 shrink-0" />
+              <span>Add New Dish</span>
+            </button>
           </div>
 
-          {/* Dynamic layout split: Table vs Form */}
           <div className="space-y-8">
-            <AnimatePresence mode="wait">
-              {isFormOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <AdminMenuForm
-                    initialItem={editingItem}
-                    onSubmit={handleFormSubmit}
-                    onCancel={() => {
-                      setIsFormOpen(false);
-                      setEditingItem(null);
-                    }}
-                    isSubmitting={isSubmitting}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* List products grid table */}
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-neutral-400 space-y-2">
                 <div className="w-10 h-10 border-2 border-[#C5A059]/20 border-t-[#C5A059] rounded-full animate-spin" />
@@ -526,7 +503,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Admin Footer meta */}
         <div className="pt-12 border-t text-left flex flex-col sm:flex-row justify-between gap-4 text-xs font-mono text-neutral-400">
           <p>&copy; Grand Emaar Hotel Nawabshah. Managerial Auth Space.</p>
           <div className="flex gap-4">
@@ -536,6 +512,70 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* Add/Edit Dish Popup Modal */}
+      <AnimatePresence>
+        {isFormOpen && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dish-modal-title"
+          >
+            <button
+              type="button"
+              aria-label="Close popup overlay"
+              className="absolute inset-0 w-full h-full cursor-default"
+              onClick={closeFormModal}
+              disabled={isSubmitting}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="relative z-10 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-sm bg-[#F9F6F0] shadow-2xl border border-[#C5A059]/30"
+            >
+              <div className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-neutral-200 bg-white px-5 py-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-[#C5A059] font-bold">
+                    Grand Emaar Admin
+                  </p>
+                  <h3
+                    id="dish-modal-title"
+                    className="font-serif text-xl font-bold text-neutral-900"
+                  >
+                    {editingItem ? 'Edit Culinary Selection' : 'Add New Culinary Selection'}
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeFormModal}
+                  disabled={isSubmitting}
+                  className="w-9 h-9 inline-flex items-center justify-center rounded-sm border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Close dish popup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 md:p-6">
+                <AdminMenuForm
+                  initialItem={editingItem}
+                  onSubmit={handleFormSubmit}
+                  onCancel={closeFormModal}
+                  isSubmitting={isSubmitting}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

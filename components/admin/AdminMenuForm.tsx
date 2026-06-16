@@ -105,7 +105,6 @@ export default function AdminMenuForm({
           className="text-neutral-400 hover:text-neutral-900 focus:outline-none p-1 shrink"
           aria-label="Close form"
         >
-          <X className="w-5 h-5" />
         </button>
       </div>
 
