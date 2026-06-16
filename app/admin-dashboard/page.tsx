@@ -8,7 +8,15 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminMenuForm from '@/components/admin/AdminMenuForm';
 import AdminMenuTable from '@/components/admin/AdminMenuTable';
-import { Plus, Library, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import {
+  Plus,
+  Library,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  AlertTriangle,
+  Trash2,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Shared default fallback items
@@ -83,6 +91,11 @@ type MenuFormPayload = Omit<MenuItem, 'id' | 'created_at'> & {
   sort_order?: number;
 };
 
+type DeleteTarget = {
+  id: string;
+  name: string;
+};
+
 function cleanMenuPayload(dishData: MenuFormPayload) {
   const { id, created_at, updated_at, ...rest } = dishData as any;
 
@@ -120,6 +133,9 @@ export default function AdminDashboardPage() {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
@@ -127,8 +143,15 @@ export default function AdminDashboardPage() {
 
   const closeFormModal = () => {
     if (isSubmitting) return;
+
     setIsFormOpen(false);
     setEditingItem(null);
+  };
+
+  const closeDeleteModal = () => {
+    if (isDeleting) return;
+
+    setDeleteTarget(null);
   };
 
   const fetchDishes = async () => {
@@ -213,7 +236,7 @@ export default function AdminDashboardPage() {
 
   // Popup open hone par background page scroll lock
   useEffect(() => {
-    if (isFormOpen) {
+    if (isFormOpen || deleteTarget) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -222,12 +245,19 @@ export default function AdminDashboardPage() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isFormOpen]);
+  }, [isFormOpen, deleteTarget]);
 
   // ESC key se popup close
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isFormOpen && !isSubmitting) {
+      if (event.key !== 'Escape') return;
+
+      if (deleteTarget && !isDeleting) {
+        closeDeleteModal();
+        return;
+      }
+
+      if (isFormOpen && !isSubmitting) {
         closeFormModal();
       }
     };
@@ -237,7 +267,7 @@ export default function AdminDashboardPage() {
     return () => {
       window.removeEventListener('keydown', handleEscape);
     };
-  }, [isFormOpen, isSubmitting]);
+  }, [isFormOpen, isSubmitting, deleteTarget, isDeleting]);
 
   const showBanner = (msg: string, isError = false) => {
     if (isError) {
@@ -355,28 +385,48 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleDeleteDish = async (id: string | undefined, name: string) => {
-    if (!id) return;
+  // Ye function direct delete nahi karega.
+  // Ye sirf confirmation popup open karega.
+  const handleDeleteDish = (id: string | undefined, name: string) => {
+    if (!id) {
+      showBanner('Dish ID is missing. Cannot delete this item.', true);
+      return;
+    }
 
-    const confirmDelete = window.confirm(
-      `Are you absolutely sure you want to delete the dish: "${name}"?`
-    );
+    setDeleteTarget({
+      id,
+      name,
+    });
+  };
 
-    if (!confirmDelete) return;
+  // Actual delete sirf popup ke confirm button se hoga.
+  const confirmDeleteDish = async () => {
+    if (!deleteTarget) return;
+
+    setIsDeleting(true);
+    setSuccessMsg(null);
+    setErrorStatus(null);
+
+    const { id, name } = deleteTarget;
 
     if (isDemoMode) {
       const updatedList = items.filter((item) => item.id !== id);
+
       setItems(updatedList);
       localStorage.setItem(
         'grand_emaar_custom_menu_items',
         JSON.stringify(updatedList)
       );
+
       showBanner(`Deleted dish "${name}" from local memory.`);
+      setDeleteTarget(null);
+      setIsDeleting(false);
       return;
     }
 
     if (!supabase) {
       showBanner('Supabase client is not configured.', true);
+      setIsDeleting(false);
       return;
     }
 
@@ -386,6 +436,7 @@ export default function AdminDashboardPage() {
       if (error) throw error;
 
       showBanner(`Successfully deleted dish "${name}" from Supabase.`);
+      setDeleteTarget(null);
       fetchDishes();
     } catch (err: any) {
       console.error('Error deleting dish:', err);
@@ -393,6 +444,8 @@ export default function AdminDashboardPage() {
         err.message || 'Failed to delete dish from database table.',
         true
       );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -549,7 +602,9 @@ export default function AdminDashboardPage() {
                     id="dish-modal-title"
                     className="font-serif text-xl font-bold text-neutral-900"
                   >
-                    {editingItem ? 'Edit Culinary Selection' : 'Add New Culinary Selection'}
+                    {editingItem
+                      ? 'Edit Culinary Selection'
+                      : 'Add New Culinary Selection'}
                   </h3>
                 </div>
 
@@ -571,6 +626,104 @@ export default function AdminDashboardPage() {
                   onCancel={closeFormModal}
                   isSubmitting={isSubmitting}
                 />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Popup */}
+      <AnimatePresence>
+        {deleteTarget && (
+          <motion.div
+            className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dish-modal-title"
+          >
+            <button
+              type="button"
+              aria-label="Close delete popup overlay"
+              className="absolute inset-0 w-full h-full cursor-default"
+              onClick={closeDeleteModal}
+              disabled={isDeleting}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 18 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 18 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="relative z-10 w-full max-w-md rounded-sm bg-white shadow-2xl border border-red-100 overflow-hidden"
+            >
+              <div className="flex items-center justify-between gap-4 border-b border-neutral-100 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.25em] text-red-500 font-bold">
+                      Delete Confirmation
+                    </p>
+                    <h3
+                      id="delete-dish-modal-title"
+                      className="font-serif text-xl font-bold text-neutral-900"
+                    >
+                      Delete Dish?
+                    </h3>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeDeleteModal}
+                  disabled={isDeleting}
+                  className="w-9 h-9 inline-flex items-center justify-center rounded-sm border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Close delete popup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="px-5 py-5 space-y-4">
+                <p className="text-sm text-neutral-600 leading-relaxed">
+                  Are you sure you want to delete this dish? This action cannot
+                  be undone.
+                </p>
+
+                <div className="rounded-sm border border-neutral-200 bg-neutral-50 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                    Selected Dish
+                  </p>
+                  <p className="mt-1 font-semibold text-neutral-900">
+                    {deleteTarget.name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-neutral-100 bg-neutral-50 px-5 py-4">
+                <button
+                  type="button"
+                  onClick={closeDeleteModal}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-100 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmDeleteDish}
+                  disabled={isDeleting}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-widest rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {isDeleting ? 'Deleting...' : 'Yes, Delete Dish'}
+                </button>
               </div>
             </motion.div>
           </motion.div>
