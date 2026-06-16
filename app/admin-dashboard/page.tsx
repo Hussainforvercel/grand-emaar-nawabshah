@@ -483,27 +483,21 @@ export default function AdminDashboardPage() {
     setIsFormOpen(true);
   };
 
-  const handleLogout = async () => {
-    const confirmation = window.confirm(
-      'Are you sure you want to log out of the administration panel?'
-    );
+const handleLogout = async () => {
+  if (isDemoMode) {
+    localStorage.removeItem('grand_emaar_demo_session');
+    router.replace('/admin-login');
+    return;
+  }
 
-    if (!confirmation) return;
-
-    if (isDemoMode) {
-      localStorage.removeItem('grand_emaar_demo_session');
-      router.replace('/admin-login');
-      return;
-    }
-
-    try {
-      await supabase!.auth.signOut();
-      router.replace('/admin-login');
-    } catch (err) {
-      console.error('Logout failed:', err);
-      router.replace('/admin-login');
-    }
-  };
+  try {
+    await supabase!.auth.signOut();
+    router.replace('/admin-login');
+  } catch (err) {
+    console.error('Logout failed:', err);
+    router.replace('/admin-login');
+  }
+};
 
   return (
     <div className="flex h-screen bg-[#F9F6F0]/20 overflow-hidden font-sans">
