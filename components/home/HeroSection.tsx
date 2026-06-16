@@ -17,7 +17,7 @@ export default function HeroSection() {
       {/* Background Graphic Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="https://picsum.photos/seed/luxhotel/1920/1080"
+          src=""
           alt="Grand Emaar Hotel Nawabshah Interior"
           fill
           priority
@@ -33,7 +33,6 @@ export default function HeroSection() {
           
           <div className="lg:col-span-8 space-y-6">
             
-            {/* Banner/Badge tag */}
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -44,7 +43,6 @@ export default function HeroSection() {
               Nawabshah{"'"}s First Certified Two-Star Hotel
             </motion.div>
 
-            {/* Typography Display Name */}
             <div className="space-y-2">
               <motion.span
                 initial={{ opacity: 0 }}

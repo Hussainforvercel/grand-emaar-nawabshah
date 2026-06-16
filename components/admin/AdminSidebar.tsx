@@ -70,7 +70,7 @@ export default function AdminSidebar({
           className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-neutral-950 hover:bg-red-950/40 text-neutral-400 hover:text-red-300 text-xs font-bold uppercase tracking-widest transition-colors rounded-sm cursor-pointer"
         >
           <LogOut className="w-3.5 h-3.5" />
-          <span>Abandon Session</span>
+          <span>Sign out</span>
         </button>
       </div>
 

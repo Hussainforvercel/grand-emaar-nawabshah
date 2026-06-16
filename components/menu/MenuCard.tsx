@@ -26,7 +26,7 @@ export default function MenuCard({ item }: MenuCardProps) {
       {/* Availability tags */}
       {!item.is_available && (
         <span className="absolute top-4 left-4 z-15 bg-neutral-900/90 text-neutral-400 text-[10px] uppercase tracking-widest font-bold px-3 py-1.5 border border-neutral-800">
-          Sold Out
+          Not Available
         </span>
       )}
 
