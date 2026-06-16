@@ -49,7 +49,7 @@ export default function AdminHeader({ items }: AdminHeaderProps) {
         {/* Active Metric */}
         <div className="bg-white border rounded-sm p-4 flex items-center justify-between shadow-sm">
           <div className="space-y-1">
-            <p className="text-[10px] uppercase font-mono tracking-wider text-neutral-400 font-bold font-semibold">Active Available</p>
+            <p className="text-[10px] uppercase font-mono tracking-wider text-neutral-400 font-semibold">Active Available</p>
             <p className="text-2xl font-bold font-serif text-emerald-600">{availableItems}</p>
           </div>
           <div className="w-10 h-10 bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 rounded-sm">
