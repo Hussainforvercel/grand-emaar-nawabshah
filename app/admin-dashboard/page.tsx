@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { MenuItem } from '@/types/menu';
@@ -16,6 +16,7 @@ import {
   X,
   AlertTriangle,
   Trash2,
+  Search,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -129,6 +130,8 @@ export default function AdminDashboardPage() {
   const [isDemoMode, setIsDemoMode] = useState(!isSupabaseConfigured);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,6 +143,27 @@ export default function AdminDashboardPage() {
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
   const router = useRouter();
+
+  const filteredItems = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) return items;
+
+    return items.filter((item) => {
+      const searchableText = [
+        item.name,
+        item.category,
+        item.description,
+        item.price,
+        item.is_available ? 'available' : 'soldout',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchableText.includes(query);
+    });
+  }, [items, searchQuery]);
 
   const closeFormModal = () => {
     if (isSubmitting) return;
@@ -519,23 +543,71 @@ export default function AdminDashboardPage() {
             )}
           </AnimatePresence>
 
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-2 text-neutral-800">
-              <Library className="w-5 h-5 text-[#C5A059]" />
-              <h2 className="font-serif text-lg font-bold">
-                Active Dishes Database Table
-              </h2>
+          <div className="space-y-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div className="flex items-center gap-2 text-neutral-800">
+                <Library className="w-5 h-5 text-[#C5A059]" />
+                <h2 className="font-serif text-lg font-bold">
+                  Active Dishes Database Table
+                </h2>
+              </div>
+
+              <button
+                onClick={handleAddNewClick}
+                id="btn-add-new-dish"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white font-bold text-xs uppercase tracking-widest transition-colors shadow-md rounded-sm cursor-pointer"
+                type="button"
+              >
+                <Plus className="w-4 h-4 shrink-0" />
+                <span>Add New Dish</span>
+              </button>
             </div>
 
-            <button
-              onClick={handleAddNewClick}
-              id="btn-add-new-dish"
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white font-bold text-xs uppercase tracking-widest transition-colors shadow-md rounded-sm cursor-pointer"
-              type="button"
-            >
-              <Plus className="w-4 h-4 shrink-0" />
-              <span>Add New Dish</span>
-            </button>
+            {/* Search Bar */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white border border-neutral-200 rounded-sm shadow-sm px-4 py-3">
+              <div className="relative w-full md:max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search dish by name, category, description or price..."
+                  className="w-full pl-10 pr-10 py-2.5 border border-neutral-200 rounded-sm text-sm text-neutral-800 placeholder:text-neutral-400 outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/15 transition-all"
+                />
+
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-red-500 transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              <div className="text-xs font-mono text-neutral-500">
+                Showing{' '}
+                <span className="font-bold text-neutral-900">
+                  {filteredItems.length}
+                </span>{' '}
+                of{' '}
+                <span className="font-bold text-neutral-900">
+                  {items.length}
+                </span>{' '}
+                dishes
+              </div>
+            </div>
+
+            {searchQuery.trim() && filteredItems.length === 0 && (
+              <div className="rounded-sm border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                No dish found for{' '}
+                <span className="font-semibold">"{searchQuery}"</span>. Try
+                searching another name, category or price.
+              </div>
+            )}
           </div>
 
           <div className="space-y-8">
@@ -548,7 +620,7 @@ export default function AdminDashboardPage() {
               </div>
             ) : (
               <AdminMenuTable
-                items={items}
+                items={filteredItems}
                 onEdit={handleEditClick}
                 onDelete={handleDeleteDish}
               />
