@@ -35,20 +35,55 @@ export default function Footer() {
             <p className="text-sm font-light text-neutral-400 leading-relaxed pt-2">
               The first certified Two-Star hotel in Nawabshah and Shaheed Benazirabad District. Experience luxury accommodation paired with premium multi-cuisine dining.
             </p>
-            <div className="flex space-x-4 pt-2">
-              <a 
-                href="https://instagram.com/grandemaarhotel"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-[#C5A059] text-neutral-400 transition-colors"
-                aria-label="Instagram Profile"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <span className="text-xs uppercase tracking-wider text-[#C5A059] font-semibold pt-0.5">
-                @grandemaarhotel
-              </span>
-            </div>
+            <div className="flex items-center gap-4 pt-2">
+
+  {/* Instagram */}
+  <a
+    href="https://instagram.com/grandemaarhotel"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="hover:text-[#C5A059] text-neutral-400 transition-colors"
+    aria-label="Instagram Profile"
+  >
+    <Instagram className="w-5 h-5" />
+  </a>
+
+  {/* Facebook */}
+  <a
+    href="https://facebook.com/p/Grand-Emaar-Hotel-Nawabshah-61579998419282/"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="hover:text-[#C5A059] text-neutral-400 transition-colors"
+    aria-label="Facebook Page"
+  >
+    <svg
+      className="w-5 h-5"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path d="M22 12a10 10 0 1 0-11.5 9.9v-7H8v-3h2.5V9.5c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4H15c-1.2 0-1.6.7-1.6 1.5V12H17l-.5 3h-2.1v7A10 10 0 0 0 22 12z"/>
+    </svg>
+  </a>
+
+  {/* TikTok */}
+  <a
+    href="https://tiktok.com/@grand_emaar_hotel_n.shah"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="hover:text-[#C5A059] text-neutral-400 transition-colors"
+    aria-label="TikTok Profile"
+  >
+    <svg
+      className="w-5 h-5"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12.7 2h3.2a5.7 5.7 0 0 0 5.1 4.3v3.2a8.9 8.9 0 0 1-5.1-1.6v7.1a6.9 6.9 0 1 1-6.9-6.9c.4 0 .9 0 1.3.1v3.3a3.6 3.6 0 1 0 2.4 3.4V2z"/>
+    </svg>
+  </a>
+
+</div>
+          
           </div>
 
           {/* Opening and Contact Hours */}

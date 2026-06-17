@@ -109,7 +109,7 @@ export default function ContactPage() {
                   </p>
                   <p className="flex justify-between">
                     <span>Restaurant Hot Kitchen:</span>
-                    <strong className="text-neutral-800">07:00 AM - 01:00 AM Same-day</strong>
+                    <strong className="text-neutral-800">07:00 AM - 01:00 AM Everyday</strong>
                   </p>
                 </div>
               </div>

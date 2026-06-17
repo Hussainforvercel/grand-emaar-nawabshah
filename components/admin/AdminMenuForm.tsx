@@ -29,9 +29,8 @@ export default function AdminMenuForm({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
-
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
+  const [isPopular, setIsPopular] = useState(false);
   const categories = [
     'Breakfast',
     'Fast Food',
@@ -50,6 +49,7 @@ export default function AdminMenuForm({
         setCategory(initialItem.category || 'Breakfast');
         setDescription(initialItem.description || '');
         setImageUrl(initialItem.image_url || '');
+        setIsPopular(initialItem?.is_popular ?? false);
         setIsAvailable(
           initialItem.is_available !== undefined ? initialItem.is_available : true
         );
@@ -60,6 +60,7 @@ export default function AdminMenuForm({
         setDescription('');
         setImageUrl('');
         setIsAvailable(true);
+        setIsPopular(false);
       }
 
       setSelectedImageFile(null);
@@ -269,6 +270,44 @@ export default function AdminMenuForm({
               className="w-full bg-neutral-50 border border-neutral-200 text-sm pl-4 pr-4 py-3 rounded-sm focus:bg-white focus:border-[#C5A059] focus:outline-none transition-colors"
             />
           </div>
+
+          {/* Availability Section */}
+<div className="space-y-1.5">
+  ...
+</div>
+
+{/* ⭐ ADD THIS BELOW IT */}
+<div className="space-y-1.5">
+  <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block mb-1">
+    Popular Dish
+  </label>
+
+  <div className="h-[46px] flex items-center justify-between bg-yellow-50 border border-yellow-200 px-4 rounded-sm">
+    
+    <div className="flex items-center gap-2">
+      <input
+        type="checkbox"
+        checked={isPopular}
+        onChange={(e) => setIsPopular(e.target.checked)}
+        className="w-4 h-4 accent-yellow-500 cursor-pointer"
+      />
+
+      <span className="text-sm font-medium text-neutral-700">
+        Mark as Popular ⭐
+      </span>
+    </div>
+
+    {isPopular && (
+      <span className="text-xs font-bold text-yellow-600 uppercase">
+        Featured
+      </span>
+    )}
+  </div>
+
+  <p className="text-[10px] text-neutral-400">
+    Popular dishes will appear on the homepage featured section.
+  </p>
+</div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -318,7 +357,8 @@ export default function AdminMenuForm({
             </div>
           </div>
         </div>
-
+        
+        
         <div className="space-y-3">
           <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block">
             Upload Dish Image to S3
