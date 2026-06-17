@@ -30,7 +30,7 @@ export default function RestaurantSection() {
             className="lg:col-span-6 relative aspect-video lg:aspect-square w-full rounded-sm overflow-hidden shadow-2xl group border border-[#C5A059]/10"
           >
             <Image
-              src="https://picsum.photos/seed/restaurantfine/800/800"
+              src="/features-images/rest.png"
               alt="Grand Emaar Nawabshah Restaurant Dining"
               fill
               referrerPolicy="no-referrer"
