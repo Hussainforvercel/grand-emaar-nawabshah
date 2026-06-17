@@ -14,7 +14,7 @@ export default function RoomsPreview() {
       name: 'Standard Room',
       desc: 'Elegant and air-conditioned cozy sanctuary perfect for business travelers with supreme linen sets and essential amenities.',
       price: 'Contact for Prices',
-      image: '/room-images/Standard_room.jepg',
+      image: '/room-images/Standard_room.jpeg',
       facilities: ['Smart AC Units', 'High-Speed Wifi', 'Clean Towels', 'HD Cable TV'],
     },
     {
@@ -25,14 +25,6 @@ export default function RoomsPreview() {
       facilities: ['Acoustic Soundproofing', 'King Size Beds', 'In-Room Breakfasts', 'Concierge Service'],
     },
     {
-      name: 'Family Executive Room',
-      desc: 'Spacious joint master suite configuration optimized specifically for traveling families expecting maximum safety, luxury hygiene, and warmth.',
-      price: 'Perfect for Family',
-      image: '/room-images/family_executive_room.jpeg',
-      facilities: ['2 Inter-connected spaces', 'Lounge Sitting Area', 'Kid Safe layout', 'Priority Parking Slots'],
-    },
-    {
-
       name: 'Family Executive Room',
       desc: 'Spacious joint master suite configuration optimized specifically for traveling families expecting maximum safety, luxury hygiene, and warmth.',
       price: 'Perfect for Family',
