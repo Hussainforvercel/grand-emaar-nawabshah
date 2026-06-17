@@ -1,62 +1,75 @@
 'use client';
 
-import React from 'react';
-import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Flame, Star, Utensils } from 'lucide-react';
+import {
+  ArrowRight,
+  Flame,
+  Loader2,
+  Star,
+  Utensils,
+  AlertCircle,
+} from 'lucide-react';
 import SectionTitle from '@/components/common/SectionTitle';
+import { supabase } from '@/lib/supabaseClient';
+
+type PopularDish = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number | string;
+  category: string;
+  image_url: string | null;
+  is_available: boolean;
+  is_popular: boolean;
+  sort_order: number;
+  created_at: string;
+};
 
 export default function DishesSection() {
-  const dishes = [
-    {
-      name: 'Chicken Karahi',
-      category: 'Pakistani Special',
-      price: 'Rs. 1,499',
-      image: '/images/dishes/chicken-karahi.jpg',
-      desc: 'Traditional spicy chicken karahi cooked with fresh tomatoes, green chilies, and signature spices.',
-      tag: 'Chef Special',
-    },
-    {
-      name: 'BBQ Platter',
-      category: 'BBQ & Grill',
-      price: 'Rs. 2,499',
-      image: '/images/dishes/bbq-platter.jpg',
-      desc: 'A premium platter with seekh kabab, malai boti, tikka, and grilled BBQ flavors.',
-      tag: 'Most Loved',
-    },
-    {
-      name: 'Chicken Biryani',
-      category: 'Rice Special',
-      price: 'Rs. 599',
-      image: '/images/dishes/chicken-biryani.jpg',
-      desc: 'Aromatic basmati rice layered with tender chicken and rich traditional spices.',
-      tag: 'Popular',
-    },
-    {
-      name: 'Chinese Chowmein',
-      category: 'Chinese Cuisine',
-      price: 'Rs. 899',
-      image: '/images/dishes/chowmein.jpg',
-      desc: 'Fresh noodles tossed with vegetables, chicken, and flavorful Chinese sauces.',
-      tag: 'Fresh Taste',
-    },
-    {
-      name: 'Zinger Burger',
-      category: 'Fast Food',
-      price: 'Rs. 699',
-      image: '/images/dishes/zinger-burger.jpg',
-      desc: 'Crispy chicken fillet served with fresh lettuce, sauces, and soft premium bun.',
-      tag: 'Crispy',
-    },
-    {
-      name: 'Club Sandwich',
-      category: 'Snacks',
-      price: 'Rs. 799',
-      image: '/images/dishes/club-sandwich.jpg',
-      desc: 'Layered sandwich with chicken, egg, cheese, fresh vegetables, and creamy sauces.',
-      tag: 'Light Meal',
-    },
-  ];
+  const [dishes, setDishes] = useState<PopularDish[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorStatus, setErrorStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPopularDishes = async () => {
+      setIsLoading(true);
+      setErrorStatus(null);
+
+      const { data, error } = await supabase
+        .from('menu_items')
+        .select(
+          'id, name, description, price, category, image_url, is_available, is_popular, sort_order, created_at'
+        )
+        .eq('is_popular', true)
+        .eq('is_available', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (error) {
+        console.error('Popular dishes fetch error:', error);
+        setErrorStatus('Unable to load popular dishes at the moment.');
+        setDishes([]);
+      } else {
+        setDishes(data || []);
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchPopularDishes();
+  }, []);
+
+  const formatPrice = (price: number | string) => {
+    const numericPrice = Number(price);
+
+    if (Number.isNaN(numericPrice)) {
+      return 'Rs. 0';
+    }
+
+    return `Rs. ${numericPrice.toLocaleString('en-PK')}`;
+  };
 
   return (
     <section className="relative overflow-hidden bg-[#FDFCF9] py-24 border-b border-neutral-100">
@@ -98,80 +111,132 @@ export default function DishesSection() {
           rich flavors, and premium hospitality standards.
         </motion.p>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-[#C5A059]" />
+            <p className="mt-4 text-sm text-neutral-500">
+              Loading popular dishes...
+            </p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {!isLoading && errorStatus && (
+          <div className="mx-auto flex max-w-xl items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-center text-sm text-red-700">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span>{errorStatus}</span>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !errorStatus && dishes.length === 0 && (
+          <div className="mx-auto max-w-xl rounded-2xl border border-neutral-200 bg-white px-6 py-10 text-center shadow-sm">
+            <h3 className="font-serif text-xl font-semibold text-neutral-900">
+              No Popular Dishes Added Yet
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-neutral-500">
+              Mark dishes as popular from the admin dashboard and they will
+              appear here automatically.
+            </p>
+          </div>
+        )}
+
         {/* Dishes Grid */}
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {dishes.map((dish, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.25 }}
-              transition={{ delay: index * 0.08, duration: 0.45 }}
-              whileHover={{ y: -8 }}
-              className="group overflow-hidden rounded-2xl border border-neutral-200/70 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-[#C5A059]/40 hover:shadow-[0_25px_70px_rgba(197,160,89,0.16)]"
-            >
-              {/* Image */}
-              <div className="relative h-64 overflow-hidden bg-neutral-100">
-                <Image
-                  src={dish.image}
-                  alt={dish.name}
-                  fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
-                />
+        {!isLoading && !errorStatus && dishes.length > 0 && (
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {dishes.map((dish, index) => (
+              <motion.div
+                key={dish.id}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ delay: index * 0.08, duration: 0.45 }}
+                whileHover={{ y: -8 }}
+                className="group overflow-hidden rounded-2xl border border-neutral-200/70 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.04)] transition-all duration-300 hover:border-[#C5A059]/40 hover:shadow-[0_25px_70px_rgba(197,160,89,0.16)]"
+              >
+                {/* Image */}
+                <div className="relative h-64 overflow-hidden bg-neutral-100">
+                  {dish.image_url ? (
+                    <img
+                      src={dish.image_url}
+                      alt={dish.name}
+                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-neutral-100">
+                      <div className="text-center">
+                        <Utensils className="mx-auto h-10 w-10 text-[#C5A059]" />
+                        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.25em] text-neutral-400">
+                          No Image
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-                {/* Dark Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  {/* Dark Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-                {/* Tag */}
-                <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-neutral-900 shadow-sm backdrop-blur">
-                  <Flame className="h-3.5 w-3.5 text-[#C5A059]" />
-                  {dish.tag}
-                </div>
+                  {/* Tag */}
+                  <div className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-neutral-900 shadow-sm backdrop-blur">
+                    <Flame className="h-3.5 w-3.5 text-[#C5A059]" />
+                    Popular
+                  </div>
 
-                {/* Price */}
-                <div className="absolute bottom-4 right-4 rounded-full bg-[#C5A059] px-4 py-2 text-sm font-semibold text-white shadow-md">
-                  {dish.price}
-                </div>
+                  {/* Price */}
+                  <div className="absolute bottom-4 right-4 rounded-full bg-[#C5A059] px-4 py-2 text-sm font-semibold text-white shadow-md">
+                    {formatPrice(dish.price)}
+                  </div>
 
-                {/* Category */}
-                <div className="absolute bottom-4 left-4 rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
-                  {dish.category}
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="relative p-7">
-                <div className="mb-3 flex items-center justify-between gap-4">
-                  <h3 className="font-serif text-xl font-semibold text-neutral-950 transition-colors duration-300 group-hover:text-[#C5A059]">
-                    {dish.name}
-                  </h3>
-
-                  <div className="flex items-center gap-1 text-[#C5A059]">
-                    <Star className="h-4 w-4 fill-[#C5A059]" />
-                    <span className="text-sm font-medium text-neutral-800">
-                      4.9
-                    </span>
+                  {/* Category */}
+                  <div className="absolute bottom-4 left-4 rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
+                    {dish.category || 'Main Course'}
                   </div>
                 </div>
 
-                <p className="mb-6 text-sm leading-7 text-neutral-500">
-                  {dish.desc}
-                </p>
+                {/* Content */}
+                <div className="relative p-7">
+                  <div className="mb-3 flex items-center justify-between gap-4">
+                    <h3 className="font-serif text-xl font-semibold text-neutral-950 transition-colors duration-300 group-hover:text-[#C5A059]">
+                      {dish.name}
+                    </h3>
 
-                <div className="flex items-center justify-between border-t border-neutral-100 pt-5">
-                  <span className="text-xs font-medium uppercase tracking-[0.2em] text-neutral-400">
-                    Grand Emaar
-                  </span>
+                    <div className="flex items-center gap-1 text-[#C5A059]">
+                      <Star className="h-4 w-4 fill-[#C5A059]" />
+                      <span className="text-sm font-medium text-neutral-800">
+                        4.9
+                      </span>
+                    </div>
+                  </div>
 
-                  <button className="group/btn flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-[#C5A059]">
-                    Order Now
-                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
-                  </button>
+                  <p className="mb-6 text-sm leading-7 text-neutral-500">
+                    {dish.description ||
+                      'Freshly prepared with premium ingredients and Grand Emaar signature taste.'}
+                  </p>
+
+                  <div className="flex items-center justify-between border-t border-neutral-100 pt-5">
+                    <span className="text-xs font-medium uppercase tracking-[0.2em] text-neutral-400">
+                      Grand Emaar
+                    </span>
+
+                    <a
+                      href={`https://wa.me/923000000000?text=${encodeURIComponent(
+                        `Hi Grand Emaar, I want to order ${dish.name}.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group/btn flex items-center gap-2 rounded-full bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-all duration-300 hover:bg-[#C5A059]"
+                    >
+                      Order Now
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+                    </a>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {/* Bottom CTA */}
         <motion.div

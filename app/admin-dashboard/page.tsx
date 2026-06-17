@@ -31,6 +31,7 @@ const defaultMenuDishes: MenuItem[] = [
       'Served piping hot with traditional chana masala curry and melt-in-the-mouth suji halwa.',
     image_url: 'https://picsum.photos/seed/halwapuri/500/400',
     is_available: true,
+    is_popular: false,
   },
   {
     id: 'mock-2',
@@ -41,6 +42,7 @@ const defaultMenuDishes: MenuItem[] = [
       'Crispy flaky paratha coated with high-purity Desi Ghee plus a local herb spiced double egg omelette.',
     image_url: 'https://picsum.photos/seed/desiparatha/500/400',
     is_available: true,
+    is_popular: false,
   },
   {
     id: 'mock-3',
@@ -51,6 +53,7 @@ const defaultMenuDishes: MenuItem[] = [
       'Crispiest fried chicken breast, double-layered iceberg lettuce, and local secret sauce in sesame bun.',
     image_url: 'https://picsum.photos/seed/ringer/500/400',
     is_available: true,
+    is_popular: true,
   },
   {
     id: 'mock-4',
@@ -61,6 +64,7 @@ const defaultMenuDishes: MenuItem[] = [
       'Traditional thick boneless cream curry cooked in clay pot vessels using fresh rural Pakistani spices.',
     image_url: 'https://picsum.photos/seed/chickenhandi/500/400',
     is_available: true,
+    is_popular: false,
   },
   {
     id: 'mock-5',
@@ -71,6 +75,7 @@ const defaultMenuDishes: MenuItem[] = [
       'Four thick mutton skewered kababs grilled over real coal beds, accompanied with cooling mint coriander raita.',
     image_url: 'https://picsum.photos/seed/beefkebabs/500/400',
     is_available: true,
+    is_popular: false,
   },
   {
     id: 'mock-6',
@@ -81,6 +86,7 @@ const defaultMenuDishes: MenuItem[] = [
       'Whipped sweetened rural yogurt beverage served in heavy earthen clay glasses for exquisite legacy touch.',
     image_url: 'https://picsum.photos/seed/sweetlassi/500/400',
     is_available: true,
+    is_popular: false,
   },
 ];
 
@@ -89,6 +95,7 @@ type MenuFormPayload = Omit<MenuItem, 'id' | 'created_at'> & {
   created_at?: string | null;
   updated_at?: string | null;
   is_featured?: boolean;
+  is_popular?: boolean;
   sort_order?: number;
 };
 
@@ -110,6 +117,9 @@ function cleanMenuPayload(dishData: MenuFormPayload) {
     image_url: rest.image_url ? String(rest.image_url).trim() : null,
     is_available:
       typeof rest.is_available === 'boolean' ? rest.is_available : true,
+
+    // ✅ Important: this saves popular checkbox value in Supabase
+    is_popular: typeof rest.is_popular === 'boolean' ? rest.is_popular : false,
   };
 
   if ('is_featured' in rest) {
@@ -156,6 +166,7 @@ export default function AdminDashboardPage() {
         item.description,
         item.price,
         item.is_available ? 'available' : 'soldout',
+        item.is_popular ? 'popular' : 'not popular',
       ]
         .filter(Boolean)
         .join(' ')
@@ -483,21 +494,21 @@ export default function AdminDashboardPage() {
     setIsFormOpen(true);
   };
 
-const handleLogout = async () => {
-  if (isDemoMode) {
-    localStorage.removeItem('grand_emaar_demo_session');
-    router.replace('/admin-login');
-    return;
-  }
+  const handleLogout = async () => {
+    if (isDemoMode) {
+      localStorage.removeItem('grand_emaar_demo_session');
+      router.replace('/admin-login');
+      return;
+    }
 
-  try {
-    await supabase!.auth.signOut();
-    router.replace('/admin-login');
-  } catch (err) {
-    console.error('Logout failed:', err);
-    router.replace('/admin-login');
-  }
-};
+    try {
+      await supabase!.auth.signOut();
+      router.replace('/admin-login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+      router.replace('/admin-login');
+    }
+  };
 
   return (
     <div className="flex h-screen bg-[#F9F6F0]/20 overflow-hidden font-sans">
@@ -566,7 +577,7 @@ const handleLogout = async () => {
                   type="text"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search dish by name, category, description or price..."
+                  placeholder="Search dish by name, category, description, price or popular..."
                   className="w-full pl-10 pr-10 py-2.5 border border-neutral-200 rounded-sm text-sm text-neutral-800 placeholder:text-neutral-400 outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/15 transition-all"
                 />
 

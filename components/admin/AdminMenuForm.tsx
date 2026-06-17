@@ -4,9 +4,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MenuItem } from '@/types/menu';
 import { AlertCircle, ImagePlus, Loader2, Save, Upload, X } from 'lucide-react';
 
+type MenuItemWithPopular = MenuItem & {
+  is_popular?: boolean;
+};
+
+type MenuItemFormPayload = Omit<
+  MenuItemWithPopular,
+  'id' | 'created_at' | 'updated_at'
+> & {
+  id?: string;
+};
+
 interface AdminMenuFormProps {
-  initialItem?: MenuItem | null;
-  onSubmit: (dish: Omit<MenuItem, 'id' | 'created_at'> & { id?: string }) => void;
+  initialItem?: MenuItemWithPopular | null;
+  onSubmit: (dish: MenuItemFormPayload) => void;
   onCancel: () => void;
   isSubmitting: boolean;
 }
@@ -23,6 +34,7 @@ export default function AdminMenuForm({
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
+  const [isPopular, setIsPopular] = useState(false);
 
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [localPreviewUrl, setLocalPreviewUrl] = useState('');
@@ -30,7 +42,7 @@ export default function AdminMenuForm({
 
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [isPopular, setIsPopular] = useState(false);
+
   const categories = [
     'Breakfast',
     'Fast Food',
@@ -45,14 +57,18 @@ export default function AdminMenuForm({
     const timer = setTimeout(() => {
       if (initialItem) {
         setName(initialItem.name || '');
-        setPrice(initialItem.price ? String(initialItem.price) : '');
+        setPrice(
+          initialItem.price !== undefined && initialItem.price !== null
+            ? String(initialItem.price)
+            : ''
+        );
         setCategory(initialItem.category || 'Breakfast');
         setDescription(initialItem.description || '');
         setImageUrl(initialItem.image_url || '');
-        setIsPopular(initialItem?.is_popular ?? false);
         setIsAvailable(
           initialItem.is_available !== undefined ? initialItem.is_available : true
         );
+        setIsPopular(initialItem.is_popular ?? false);
       } else {
         setName('');
         setPrice('');
@@ -131,7 +147,6 @@ export default function AdminMenuForm({
   };
 
   const uploadImageToS3 = async () => {
-    // Edit mode mein agar new image select nahi ki, to old image URL preserve rahega.
     if (!selectedImageFile) {
       return imageUrl.trim();
     }
@@ -191,6 +206,7 @@ export default function AdminMenuForm({
         description: description.trim(),
         image_url: finalImageUrl,
         is_available: isAvailable,
+        is_popular: isPopular,
       });
     } catch (error: any) {
       console.error('Image upload failed:', error);
@@ -209,6 +225,7 @@ export default function AdminMenuForm({
               ? 'Edit Existing Dish Details'
               : 'Register New Culinary Selection'}
           </h3>
+
           <p className="text-xs text-neutral-400 font-light mt-0.5">
             {initialItem
               ? `Adjusting credentials of "${initialItem.name}"`
@@ -222,6 +239,7 @@ export default function AdminMenuForm({
           className="text-neutral-400 hover:text-neutral-900 focus:outline-none p-1 shrink"
           aria-label="Close form"
         >
+          <X className="w-5 h-5" />
         </button>
       </div>
 
@@ -241,6 +259,7 @@ export default function AdminMenuForm({
             >
               Dish Name <span className="text-[#C5A059]">*</span>
             </label>
+
             <input
               id="dish-input-name"
               type="text"
@@ -259,6 +278,7 @@ export default function AdminMenuForm({
             >
               Price in Rupees (PKR) <span className="text-[#C5A059]">*</span>
             </label>
+
             <input
               id="dish-input-price"
               type="number"
@@ -270,44 +290,6 @@ export default function AdminMenuForm({
               className="w-full bg-neutral-50 border border-neutral-200 text-sm pl-4 pr-4 py-3 rounded-sm focus:bg-white focus:border-[#C5A059] focus:outline-none transition-colors"
             />
           </div>
-
-          {/* Availability Section */}
-<div className="space-y-1.5">
-  ...
-</div>
-
-{/* ⭐ ADD THIS BELOW IT */}
-<div className="space-y-1.5">
-  <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block mb-1">
-    Popular Dish
-  </label>
-
-  <div className="h-[46px] flex items-center justify-between bg-yellow-50 border border-yellow-200 px-4 rounded-sm">
-    
-    <div className="flex items-center gap-2">
-      <input
-        type="checkbox"
-        checked={isPopular}
-        onChange={(e) => setIsPopular(e.target.checked)}
-        className="w-4 h-4 accent-yellow-500 cursor-pointer"
-      />
-
-      <span className="text-sm font-medium text-neutral-700">
-        Mark as Popular ⭐
-      </span>
-    </div>
-
-    {isPopular && (
-      <span className="text-xs font-bold text-yellow-600 uppercase">
-        Featured
-      </span>
-    )}
-  </div>
-
-  <p className="text-[10px] text-neutral-400">
-    Popular dishes will appear on the homepage featured section.
-  </p>
-</div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -318,6 +300,7 @@ export default function AdminMenuForm({
             >
               Dish Category <span className="text-[#C5A059]">*</span>
             </label>
+
             <select
               id="dish-input-category"
               value={category}
@@ -348,6 +331,7 @@ export default function AdminMenuForm({
                 onChange={(e) => setIsAvailable(e.target.checked)}
                 className="w-4 h-4 rounded border-neutral-300 text-[#C5A059] focus:ring-[#C5A059]/35 cursor-pointer accent-[#C5A059]"
               />
+
               <label
                 htmlFor="dish-input-available"
                 className="text-sm font-medium text-neutral-700 cursor-pointer select-none"
@@ -357,8 +341,45 @@ export default function AdminMenuForm({
             </div>
           </div>
         </div>
-        
-        
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="dish-input-popular"
+            className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block mb-1"
+          >
+            Popular Dish
+          </label>
+
+          <div className="h-[46px] flex items-center justify-between bg-yellow-50 border border-yellow-200 px-4 rounded-sm">
+            <div className="flex items-center gap-2">
+              <input
+                id="dish-input-popular"
+                type="checkbox"
+                checked={isPopular}
+                onChange={(e) => setIsPopular(e.target.checked)}
+                className="w-4 h-4 accent-yellow-500 cursor-pointer"
+              />
+
+              <label
+                htmlFor="dish-input-popular"
+                className="text-sm font-medium text-neutral-700 cursor-pointer select-none"
+              >
+                Mark as Popular ⭐
+              </label>
+            </div>
+
+            {isPopular && (
+              <span className="text-xs font-bold text-yellow-600 uppercase">
+                Popular
+              </span>
+            )}
+          </div>
+
+          <p className="text-[10px] text-neutral-400">
+            Popular dishes will appear on the homepage featured/popular section.
+          </p>
+        </div>
+
         <div className="space-y-3">
           <label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block">
             Upload Dish Image to S3
@@ -379,6 +400,7 @@ export default function AdminMenuForm({
               ) : (
                 <div className="text-center text-neutral-400 space-y-2 px-3">
                   <ImagePlus className="w-8 h-8 mx-auto text-[#C5A059]" />
+
                   <p className="text-[10px] uppercase tracking-widest font-bold">
                     No Image Selected
                   </p>
@@ -408,6 +430,7 @@ export default function AdminMenuForm({
                     <p className="text-xs font-semibold text-neutral-800 truncate">
                       {selectedImageFile.name}
                     </p>
+
                     <p className="text-[10px] text-neutral-400">
                       {(selectedImageFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
@@ -429,6 +452,7 @@ export default function AdminMenuForm({
                   <p className="text-[10px] uppercase tracking-widest text-emerald-700 font-bold">
                     Existing image saved
                   </p>
+
                   <p className="text-xs text-emerald-700 mt-1">
                     Upload a new image only if you want to replace the existing
                     dish image.
@@ -446,6 +470,7 @@ export default function AdminMenuForm({
           >
             Dish Description (Ingredients, Portion context)
           </label>
+
           <textarea
             id="dish-input-description"
             rows={3}
