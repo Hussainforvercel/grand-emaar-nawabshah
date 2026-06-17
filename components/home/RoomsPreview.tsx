@@ -14,21 +14,21 @@ export default function RoomsPreview() {
       name: 'Standard Room',
       desc: 'Elegant and air-conditioned cozy sanctuary perfect for business travelers with supreme linen sets and essential amenities.',
       price: 'Contact for Prices',
-      image: 'https://picsum.photos/seed/standardroom/600/400',
+      image: '/room-images/Standardroom.jpg',
       facilities: ['Smart AC Units', 'High-Speed Wifi', 'Clean Towels', 'HD Cable TV'],
     },
     {
       name: 'Deluxe Room',
       desc: 'Our gorgeous executive choice boasting spacious layouts, superior views, high-grade lounging furniture, and deluxe complimentary packages.',
       price: 'Premium Choice',
-      image: 'https://picsum.photos/seed/deluxeroom/600/400',
+      image: '/room-images/Deluxe_room.jpeg',
       facilities: ['Acoustic Soundproofing', 'King Size Beds', 'In-Room Breakfasts', 'Concierge Service'],
     },
     {
       name: 'Family Executive Room',
       desc: 'Spacious joint master suite configuration optimized specifically for traveling families expecting maximum safety, luxury hygiene, and warmth.',
       price: 'Perfect for Family',
-      image: 'https://picsum.photos/seed/familyroom/600/400',
+      image: '/room-images/family_executive_room.jpeg',
       facilities: ['2 Inter-connected spaces', 'Lounge Sitting Area', 'Kid Safe layout', 'Priority Parking Slots'],
     },
   ];
@@ -83,7 +83,7 @@ export default function RoomsPreview() {
                   <div className="pt-2">
                     <p className="text-[10px] uppercase tracking-wider text-neutral-400 font-bold mb-2">Available Amenities:</p>
                     <div className="flex flex-wrap gap-2">
-                       {room.facilities.map((fac, fIdx) => (
+                      {room.facilities.map((fac, fIdx) => (
                         <span key={fIdx} className="text-[11px] bg-neutral-50 text-neutral-600 px-2.5 py-1 rounded-sm border border-neutral-100 flex items-center gap-1">
                           <span className="w-1 h-1 rounded-full bg-[#C5A059]" />
                           {fac}
@@ -119,7 +119,6 @@ export default function RoomsPreview() {
             Explore Full Rooms Page & Facilities
           </Link>
         </div>
-
       </div>
     </section>
   );
