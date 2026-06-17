@@ -17,7 +17,7 @@ export default function HeroSection() {
       {/* Background Graphic Overlay */}
       <div className="absolute inset-0 z-0">
         <Image
-          src=""
+          src="/header/header.png"
           alt="Grand Emaar Hotel Nawabshah Interior"
           fill
           priority
@@ -116,33 +116,6 @@ export default function HeroSection() {
             </motion.div>
 
           </div>
-
-          {/* Golden Badge Panel or Visual Showcase */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.6, duration: 0.7 }}
-            className="hidden lg:col-span-4 lg:flex flex-col border border-[#C5A059]/20 bg-neutral-900/90 p-8 text-center rounded-sm space-y-6 shadow-2xl relative"
-          >
-            {/* Elegant luxury framing */}
-            <div className="absolute inset-2 border border-[#C5A059]/10 pointer-events-none" />
-            
-            <div className="w-16 h-16 rounded-full bg-neutral-950 flex items-center justify-center border-2 border-[#C5A059] mx-auto">
-              <span className="text-[#C5A059] font-serif text-2xl font-bold">★★</span>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-serif text-xl font-medium tracking-wide text-white">District Milestone</h3>
-              <p className="text-neutral-400 text-xs leading-relaxed font-light">
-                “Official Star Category approved. Providing prime guest services and fine Pakistani & Chinese dining for our executive visitors and graceful families.”
-              </p>
-            </div>
-
-            <div className="border-t border-[#C5A059]/20 pt-4 text-xs font-mono tracking-widest text-[#C5A059]">
-              SECURE FAMILY ENVIRONMENT
-            </div>
-          </motion.div>
-
         </div>
       </div>
     </section>

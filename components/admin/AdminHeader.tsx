@@ -22,9 +22,9 @@ export default function AdminHeader({ items }: AdminHeaderProps) {
           <h1 className="font-serif text-2xl md:text-3xl font-bold text-neutral-900">
             Grand Emaar Nawabshah Menu Registry
           </h1>
-          <p className="text-xs md:text-sm text-neutral-400 font-light mt-1">
+          {/* <p className="text-xs md:text-sm text-neutral-400 font-light mt-1">
             Build, edit, delete, and control public dishes on your {"website's"} `/menu` portal.
-          </p>
+          </p> */}
         </div>
         <div className="flex items-center gap-2 bg-neutral-900 border border-[#C5A059]/25 px-4 py-2 text-[#C5A059] rounded-sm text-xs font-mono font-bold uppercase tracking-wider">
           <Flame className="w-4 h-4 animate-bounce" />
