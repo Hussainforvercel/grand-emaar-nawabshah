@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, LogOut, ShieldAlert, Utensils, X } from 'lucide-react';
+import Image from 'next/image';
 
 interface AdminSidebarProps {
   onLogout: () => void;
@@ -65,6 +66,14 @@ export default function AdminSidebar({
           {/* Sidebar Logo */}
           <div className="p-6 border-b border-neutral-800">
             <Link href="/" className="flex flex-col items-start group">
+            <Image
+                            src="/logo/logo_GE.png"
+                            alt="Grand Emaar Logo"
+                            width={90}
+                            height={90}
+                            priority
+                            className="mb-3 ml-7 object-contain"
+                            />
               <span className="font-serif text-lg font-bold tracking-tight text-white group-hover:text-[#C5A059] transition-colors">
                 GRAND EMAAR
               </span>

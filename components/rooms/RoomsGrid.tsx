@@ -1,41 +1,74 @@
 'use client';
 
 import React from 'react';
-import { Room } from '@/types/room';
 import RoomCard from './RoomCard';
 
 export default function RoomsGrid() {
-  const rooms: Room[] = [
+  const rooms = [
     {
-      id: 'standard',
+    name: 'Family Executive Suite',
+    desc: 'Spacious joint master suite configuration optimized specifically for traveling families expecting maximum safety, luxury hygiene, and warmth.',
+    price: 'Perfect for Family',
+    image: '/room-images/family_executive.jpeg',
+    facilities: [
+      '2 Inter-connected spaces',
+      'Lounge Sitting Area',
+      'Kid Safe layout',
+      'Priority Parking Slots'
+    ]
+  },
+  {
+    name: 'VIP Executive Room',
+    desc: 'Premium master bedroom featuring a striking plush statement headboard, elegant golden-accented lounge chairs, and warm ambient tray-ceiling lighting for a luxurious stay.',
+    price: 'Best for Luxury Seekers',
+    image: '/room-images/Deluxe_room2.jpeg',
+    facilities: [
+      'Executive King Bed',
+      'Air Conditioning',
+      'Plush Statement Headboard',
+      'VIP Seating Area',
+      'Smart TV & Telephone',
+      'High-Speed WiFi',
+      'Attached Bathroom'
+    ]
+  },
+    {
       name: 'Standard Room',
-      description: 'Elegant and air-conditioned cozy retreat layout optimized for traveling business professionals or executive pairs. Fully equipped with modern fixtures, backup generator, quiet surroundings and premium hygiene standards.',
-      price: 'Contact for Booking',
-      image: 'https://picsum.photos/seed/stdroom/800/600',
-      facilities: ['Smart AC System', 'Complimentary High-speed Wifi', 'Pure Linens', 'HD Cable TV', '24h Cold/Hot Shower', 'Clean Bathroom Kits'],
+      desc: 'Elegant and air-conditioned cozy sanctuary perfect for business travelers with supreme linen sets and essential amenities.',
+      price: 'Contact for Prices',
+      image: '/room-images/Standard_room.jpeg',
+      facilities: ['Smart AC Units', 'High-Speed Wifi', 'Clean Towels', 'HD Cable TV'],
     },
     {
-      id: 'deluxe',
       name: 'Deluxe Room',
-      description: 'Our crown jewel chamber boasting a master king-size bed setup, larger panoramic layouts, refined acoustic wood paneling, premium sofas, and double complimentary breakfast. Ideal for executive travelers searching for elevated tranquility.',
-      price: 'Executive Suite tier',
-      image: 'https://picsum.photos/seed/dlxroom/800/600',
-      facilities: ['Acoustic Soundproofing', 'King Size Master Bed', 'In-room Breakfast Option', 'Luggage Desk Support', 'Luxury Toiletries Set', 'Complimentary Water & Tea'],
+      desc: 'Our gorgeous executive choice boasting spacious layouts, superior views, high-grade lounging furniture, and deluxe complimentary packages.',
+      price: 'Premium Choice',
+      image: '/room-images/Deluxe_room.jpeg',
+      facilities: ['Acoustic Soundproofing', 'King Size Beds', 'In-Room Breakfasts', 'Concierge Service'],
     },
     {
-      id: 'family',
       name: 'Family Executive Room',
-      description: 'Expansive interconnected multi-bed suite configurations crafted specifically to provide ultimate privacy, top-tier safety, and exceptional modern luxury for visiting Pakistani and traveling families of 4-6 members on Sakrand Road.',
-      price: 'Spacious Family Choice',
-      image: 'https://picsum.photos/seed/famroom/800/600',
-      facilities: ['Joint Multi-Bed setup', 'Spacious Sitting Lounges', 'Priority Car Parking', 'Kid Accommodative furniture', 'High Air-cooling power', '24h Quick Room Assistant'],
-    },
+      desc: 'Spacious joint master suite configuration optimized specifically for traveling families expecting maximum safety, luxury hygiene, and warmth.',
+      price: 'Perfect for Family',
+      image: '/room-images/family_executive_room.jpeg',
+      facilities: ['2 Inter-connected spaces', 'Lounge Sitting Area', 'Kid Safe layout', 'Priority Parking Slots'],
+    }
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {rooms.map((room) => (
-        <RoomCard key={room.id} room={room} />
+      {rooms.map((room, index) => (
+        <RoomCard
+          key={index}
+          room={{
+            id: `room-${index}`,   // 🔥 FIX: fake id generate
+            name: room.name,
+            description: room.desc,
+            price: room.price,
+            image: room.image,
+            facilities: room.facilities,
+          }}
+        />
       ))}
     </div>
   );

@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Mail, Clock, Phone, MapPin, Instagram, HelpCircle } from 'lucide-react';
 import { getWhatsAppLink } from '@/lib/whatsapp';
+import Image from 'next/image';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -22,15 +23,32 @@ export default function Footer() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           
-          {/* Brand/About Brief */}
+          {/* Brand/About Brief */}<Image
+                src="/logo/logo_GE.png"
+                alt="Grand Emaar Logo"
+                width={90}
+                height={90}
+                priority
+                className="mb-3 ml-7 object-contain"
+                />
           <div className="space-y-4">
-            <Link href="/" className="flex flex-col">
-              <span className="font-serif text-2xl font-bold tracking-tight text-white mb-1">
-                GRAND EMAAR
-              </span>
-              <span className="text-xs font-sans tracking-[0.25em] uppercase text-[#C5A059] font-semibold">
-                Hotel Nawabshah
-              </span>
+            <Link href="/" className="flex flex-col items-start">
+            <Image
+                src="/logo/logo_GE.png"
+                alt="Grand Emaar Logo"
+                width={90}
+                height={90}
+                priority
+                className="mb-3 ml-7 object-contain"
+                />
+            <span className="font-serif text-2xl font-bold tracking-tight text-white mb-1">
+    GRAND EMAAR
+            </span>
+
+            <span className="text-xs font-sans tracking-[0.25em] uppercase text-[#C5A059] font-semibold">
+            Hotel Nawabshah
+            </span>
+
             </Link>
             <p className="text-sm font-light text-neutral-400 leading-relaxed pt-2">
               The first certified Two-Star hotel in Nawabshah and Shaheed Benazirabad District. Experience luxury accommodation paired with premium multi-cuisine dining.

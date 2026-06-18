@@ -59,13 +59,12 @@ export default function Navbar() {
           <div className="flex justify-between items-center h-16">
             
             {/* Logo area */}
-            <Link href="/" className="flex flex-col items-start group">
-              <span className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 group-hover:text-[#C5A059] transition-colors">
-                GRAND EMAAR
-              </span>
-              <span className="text-[10px] sm:text-xs font-sans tracking-[0.3em] uppercase text-[#C5A059] font-semibold -mt-1 group-hover:text-neutral-950 transition-colors">
-                Hotel Nawabshah
-              </span>
+            <Link href="/" className="flex items-center gap-3 group">
+            <img
+              src="/logo/logo_GE.png"
+              alt="Grand Emaar Logo"
+              className="h-15 w-auto object-contain ml-8"
+            />
             </Link>
 
             {/* Desktop Navigation Links */}

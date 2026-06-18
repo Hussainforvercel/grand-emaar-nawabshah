@@ -11,27 +11,6 @@ import { getWhatsAppLink } from '@/lib/whatsapp';
 export default function RoomsPreview() {
   const rooms = [
     {
-      name: 'Standard Room',
-      desc: 'Elegant and air-conditioned cozy sanctuary perfect for business travelers with supreme linen sets and essential amenities.',
-      price: 'Contact for Prices',
-      image: '/room-images/Standard_room.jpeg',
-      facilities: ['Smart AC Units', 'High-Speed Wifi', 'Clean Towels', 'HD Cable TV'],
-    },
-    {
-      name: 'Deluxe Room',
-      desc: 'Our gorgeous executive choice boasting spacious layouts, superior views, high-grade lounging furniture, and deluxe complimentary packages.',
-      price: 'Premium Choice',
-      image: '/room-images/Deluxe_room.jpeg',
-      facilities: ['Acoustic Soundproofing', 'King Size Beds', 'In-Room Breakfasts', 'Concierge Service'],
-    },
-    {
-      name: 'Family Executive Room',
-      desc: 'Spacious joint master suite configuration optimized specifically for traveling families expecting maximum safety, luxury hygiene, and warmth.',
-      price: 'Perfect for Family',
-      image: '/room-images/family_executive_room.jpeg',
-      facilities: ['2 Inter-connected spaces', 'Lounge Sitting Area', 'Kid Safe layout', 'Priority Parking Slots'],
-    },
-    {
     name: 'Family Executive Suite',
     desc: 'Spacious joint master suite configuration optimized specifically for traveling families expecting maximum safety, luxury hygiene, and warmth.',
     price: 'Perfect for Family',
@@ -57,7 +36,28 @@ export default function RoomsPreview() {
       'High-Speed WiFi',
       'Attached Bathroom'
     ]
-  }
+  },
+    {
+      name: 'Standard Room',
+      desc: 'Elegant and air-conditioned cozy sanctuary perfect for business travelers with supreme linen sets and essential amenities.',
+      price: 'Contact for Prices',
+      image: '/room-images/Standard_room.jpeg',
+      facilities: ['Smart AC Units', 'High-Speed Wifi', 'Clean Towels', 'HD Cable TV'],
+    },
+    {
+      name: 'Deluxe Room',
+      desc: 'Our gorgeous executive choice boasting spacious layouts, superior views, high-grade lounging furniture, and deluxe complimentary packages.',
+      price: 'Premium Choice',
+      image: '/room-images/Deluxe_room.jpeg',
+      facilities: ['Acoustic Soundproofing', 'King Size Beds', 'In-Room Breakfasts', 'Concierge Service'],
+    },
+    {
+      name: 'Family Executive Room',
+      desc: 'Spacious joint master suite configuration optimized specifically for traveling families expecting maximum safety, luxury hygiene, and warmth.',
+      price: 'Perfect for Family',
+      image: '/room-images/family_executive_room.jpeg',
+      facilities: ['2 Inter-connected spaces', 'Lounge Sitting Area', 'Kid Safe layout', 'Priority Parking Slots'],
+    }
   ];
 
   const whatsappMessage = 'Hello Grand Emaar Hotel, I want to book a room.';

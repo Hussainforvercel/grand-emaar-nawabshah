@@ -101,7 +101,7 @@ export default function MenuCard({ item }: MenuCardProps) {
             rel="noopener noreferrer"
             className="text-[#C5A059] hover:text-neutral-900 font-bold uppercase tracking-wider hover:underline flex items-center gap-1"
           >
-            Ask Now &rarr;
+            Order Now &rarr;
           </a>
         </div>
       </div>
