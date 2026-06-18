@@ -32,33 +32,66 @@ export default function DishesSection() {
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchPopularDishes = async () => {
       setIsLoading(true);
       setErrorStatus(null);
 
-      const { data, error } = await supabase
-        .from('menu_items')
-        .select(
-          'id, name, description, price, category, image_url, is_available, is_popular, sort_order, created_at'
-        )
-        .eq('is_popular', true)
-        .eq('is_available', true)
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: false })
-        .limit(6);
+      const supabaseClient = supabase;
 
-      if (error) {
-        console.error('Popular dishes fetch error:', error);
-        setErrorStatus('Unable to load popular dishes at the moment.');
-        setDishes([]);
-      } else {
-        setDishes(data || []);
+      if (!supabaseClient) {
+        if (isMounted) {
+          setErrorStatus(
+            'Supabase is not configured. Please check your environment variables.'
+          );
+          setDishes([]);
+          setIsLoading(false);
+        }
+
+        return;
       }
 
-      setIsLoading(false);
+      try {
+        const { data, error } = await supabaseClient
+          .from('menu_items')
+          .select(
+            'id, name, description, price, category, image_url, is_available, is_popular, sort_order, created_at'
+          )
+          .eq('is_popular', true)
+          .eq('is_available', true)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: false })
+          .limit(6);
+
+        if (!isMounted) return;
+
+        if (error) {
+          console.error('Popular dishes fetch error:', error);
+          setErrorStatus('Unable to load popular dishes at the moment.');
+          setDishes([]);
+        } else {
+          setDishes((data ?? []) as PopularDish[]);
+        }
+      } catch (error) {
+        console.error('Unexpected popular dishes fetch error:', error);
+
+        if (isMounted) {
+          setErrorStatus('Something went wrong while loading popular dishes.');
+          setDishes([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     };
 
     fetchPopularDishes();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const formatPrice = (price: number | string) => {
