@@ -22,15 +22,6 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-          
-          {/* Brand/About Brief */}<Image
-                src="/logo/logo_GE.png"
-                alt="Grand Emaar Logo"
-                width={90}
-                height={90}
-                priority
-                className="mb-3 ml-7 object-contain"
-                />
           <div className="space-y-4">
             <Link href="/" className="flex flex-col items-start">
             <Image
