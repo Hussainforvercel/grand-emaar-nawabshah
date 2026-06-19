@@ -14,38 +14,49 @@ export type CategoryFormPayload = {
   image_url: string;
 };
 
+type InitialCategory = {
+  name: string;
+  image_url?: string | null;
+};
+
 type AdminCategoryFormProps = {
+  initialCategory?: InitialCategory | null;
   onSubmit: (payload: CategoryFormPayload) => void | Promise<void>;
   onCancel: () => void;
   isSubmitting?: boolean;
 };
 
 export default function AdminCategoryForm({
+  initialCategory = null,
   onSubmit,
   onCancel,
   isSubmitting = false,
 }: AdminCategoryFormProps) {
   const [name, setName] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewImage, setPreviewImage] = useState('');
+  const [localPreviewUrl, setLocalPreviewUrl] = useState('');
   const [uploadError, setUploadError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
 
   const isBusy = isSubmitting || isUploading;
+  const previewImage = localPreviewUrl || imageUrl;
 
   useEffect(() => {
-    if (!imageFile) {
-      setPreviewImage('');
-      return;
-    }
+    setName(initialCategory?.name || '');
+    setImageUrl(initialCategory?.image_url || '');
+    setImageFile(null);
+    setLocalPreviewUrl('');
+    setUploadError('');
+  }, [initialCategory]);
 
-    const objectUrl = URL.createObjectURL(imageFile);
-    setPreviewImage(objectUrl);
-
+  useEffect(() => {
     return () => {
-      URL.revokeObjectURL(objectUrl);
+      if (localPreviewUrl) {
+        URL.revokeObjectURL(localPreviewUrl);
+      }
     };
-  }, [imageFile]);
+  }, [localPreviewUrl]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError('');
@@ -64,7 +75,7 @@ export default function AdminCategoryForm({
       return;
     }
 
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    const maxSize = 5 * 1024 * 1024;
 
     if (file.size > maxSize) {
       setUploadError('Image size must be less than 5MB.');
@@ -73,12 +84,22 @@ export default function AdminCategoryForm({
       return;
     }
 
+    if (localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+    }
+
     setImageFile(file);
+    setLocalPreviewUrl(URL.createObjectURL(file));
   };
 
   const clearImage = () => {
+    if (localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+    }
+
     setImageFile(null);
-    setPreviewImage('');
+    setLocalPreviewUrl('');
+    setImageUrl('');
     setUploadError('');
   };
 
@@ -97,7 +118,11 @@ export default function AdminCategoryForm({
       throw new Error(result?.error || 'Failed to upload image.');
     }
 
-    return String(result.imageUrl || '');
+    if (!result.imageUrl) {
+      throw new Error('S3 image URL was not returned.');
+    }
+
+    return String(result.imageUrl);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -115,15 +140,15 @@ export default function AdminCategoryForm({
     try {
       setIsUploading(true);
 
-      let uploadedImageUrl = '';
+      let finalImageUrl = imageUrl.trim();
 
       if (imageFile) {
-        uploadedImageUrl = await uploadImageToS3(imageFile);
+        finalImageUrl = await uploadImageToS3(imageFile);
       }
 
       await onSubmit({
         name: cleanName,
-        image_url: uploadedImageUrl,
+        image_url: finalImageUrl,
       });
     } catch (error: any) {
       setUploadError(error?.message || 'Failed to upload category image.');
@@ -216,7 +241,9 @@ export default function AdminCategoryForm({
           <div className="flex items-center justify-between gap-3 px-4 py-3">
             <div className="flex items-center gap-2 text-xs text-neutral-500">
               <ImageIcon className="h-4 w-4 text-[#C5A059]" />
-              <span>Image preview selected.</span>
+              <span>
+                {imageFile ? 'New image selected.' : 'Existing image saved.'}
+              </span>
             </div>
 
             <button
@@ -248,11 +275,14 @@ export default function AdminCategoryForm({
           className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white text-xs font-bold uppercase tracking-widest rounded-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+
           {isUploading
             ? 'Uploading Image...'
             : isSubmitting
               ? 'Saving...'
-              : 'Save Category'}
+              : initialCategory
+                ? 'Update Category'
+                : 'Save Category'}
         </button>
       </div>
     </form>
