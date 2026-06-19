@@ -1,8 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItem } from '@/types/menu';
-import { AlertCircle, ImagePlus, Loader2, Save, Upload, X } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  ChevronDown,
+  Image as ImageIcon,
+  ImagePlus,
+  Loader2,
+  Save,
+  Upload,
+  X,
+} from 'lucide-react';
 
 type MenuItemWithPopular = MenuItem & {
   is_popular?: boolean;
@@ -15,11 +25,22 @@ type MenuItemFormPayload = Omit<
   id?: string;
 };
 
+type CategoryOption =
+  | string
+  | {
+      id?: string | number;
+      name: string;
+      image_url?: string | null;
+    };
+
 interface AdminMenuFormProps {
   initialItem?: MenuItemWithPopular | null;
   onSubmit: (dish: MenuItemFormPayload) => void;
   onCancel: () => void;
   isSubmitting: boolean;
+
+  // Dynamic categories from page.tsx / Supabase
+  categoryOptions?: CategoryOption[];
 }
 
 export default function AdminMenuForm({
@@ -27,10 +48,11 @@ export default function AdminMenuForm({
   onSubmit,
   onCancel,
   isSubmitting,
+  categoryOptions = [],
 }: AdminMenuFormProps) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('Breakfast');
+  const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
@@ -40,41 +62,66 @@ export default function AdminMenuForm({
   const [localPreviewUrl, setLocalPreviewUrl] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  const [errorStatus, setErrorStatus] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
-  const categories = [
-    'Beverages',
-    'Desserts',
-    'Baar',
-    'Coffee',
-    'Breakfast',
-    'Hot and Cold',
-    'Fresh Juice and Shake',
-    'Starter',
-    'BBQ',
-    'BBQ Fish',
-    'BBQ Roll',
-    'BBQ Platter',
-    'Fast Food',
-    'Sandwich',
-    'Fries',
-    'Biryani',
-    'Soup',
-    'Chinese Thai Gravies',
-    'Noodles',
-    'Rice',
-    'Handi',
-    'Karahi',
-    'Tandori',
-    'Salad',
-    'Stakes',
-    'Continental',
-    'Pasta',
-    'Sea Food',
-    'Pizza Special',
-    'Roll',
-  ];
+  const [errorStatus, setErrorStatus] = useState<string | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const normalizedCategoryOptions = useMemo(() => {
+    const cleanCategories = categoryOptions
+      .map((item) => {
+        if (typeof item === 'string') {
+          return {
+            id: item,
+            name: item,
+            image_url: null as string | null,
+          };
+        }
+
+        return {
+          id: item.id ? String(item.id) : item.name,
+          name: item.name,
+          image_url: item.image_url || null,
+        };
+      })
+      .filter((item) => item.name && item.name.trim().length > 0);
+
+    const uniqueCategories = cleanCategories.filter(
+      (item, index, array) =>
+        array.findIndex(
+          (cat) => cat.name.trim().toLowerCase() === item.name.trim().toLowerCase()
+        ) === index
+    );
+
+    return uniqueCategories;
+  }, [categoryOptions]);
+
+  const dropdownCategoryOptions = useMemo(() => {
+    if (!category.trim()) return normalizedCategoryOptions;
+
+    const exists = normalizedCategoryOptions.some(
+      (item) => item.name.trim().toLowerCase() === category.trim().toLowerCase()
+    );
+
+    if (exists) return normalizedCategoryOptions;
+
+    return [
+      {
+        id: category,
+        name: category,
+        image_url: null,
+      },
+      ...normalizedCategoryOptions,
+    ];
+  }, [category, normalizedCategoryOptions]);
+
+  const selectedCategory = useMemo(() => {
+    return dropdownCategoryOptions.find(
+      (item) => item.name.trim().toLowerCase() === category.trim().toLowerCase()
+    );
+  }, [category, dropdownCategoryOptions]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -85,7 +132,7 @@ export default function AdminMenuForm({
             ? String(initialItem.price)
             : ''
         );
-        setCategory(initialItem.category || 'Breakfast');
+        setCategory(initialItem.category || '');
         setDescription(initialItem.description || '');
         setImageUrl(initialItem.image_url || '');
         setIsAvailable(
@@ -95,7 +142,7 @@ export default function AdminMenuForm({
       } else {
         setName('');
         setPrice('');
-        setCategory('Breakfast');
+        setCategory('');
         setDescription('');
         setImageUrl('');
         setIsAvailable(true);
@@ -106,6 +153,7 @@ export default function AdminMenuForm({
       setLocalPreviewUrl('');
       setErrorStatus(null);
       setIsUploadingImage(false);
+      setIsCategoryDropdownOpen(false);
 
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -116,12 +164,35 @@ export default function AdminMenuForm({
   }, [initialItem]);
 
   useEffect(() => {
+    if (!category && normalizedCategoryOptions.length > 0 && !initialItem) {
+      setCategory(normalizedCategoryOptions[0].name);
+    }
+  }, [category, normalizedCategoryOptions, initialItem]);
+
+  useEffect(() => {
     return () => {
       if (localPreviewUrl) {
         URL.revokeObjectURL(localPreviewUrl);
       }
     };
   }, [localPreviewUrl]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleImageFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -202,6 +273,12 @@ export default function AdminMenuForm({
     }
   };
 
+  const handleSelectCategory = (selectedName: string) => {
+    setCategory(selectedName);
+    setIsCategoryDropdownOpen(false);
+    setErrorStatus(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorStatus(null);
@@ -218,6 +295,11 @@ export default function AdminMenuForm({
       return;
     }
 
+    if (!category.trim()) {
+      setErrorStatus('Please select a dish category. First add category from Add Category button.');
+      return;
+    }
+
     try {
       const finalImageUrl = await uploadImageToS3();
 
@@ -225,7 +307,7 @@ export default function AdminMenuForm({
         id: initialItem?.id,
         name: name.trim(),
         price: priceNum,
-        category,
+        category: category.trim(),
         description: description.trim(),
         image_url: finalImageUrl,
         is_available: isAvailable,
@@ -318,24 +400,119 @@ export default function AdminMenuForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="space-y-1.5">
             <label
-              htmlFor="dish-input-category"
+              id="dish-category-label"
               className="text-xs font-semibold uppercase tracking-wider text-neutral-500 block mb-1"
             >
               Dish Category <span className="text-[#C5A059]">*</span>
             </label>
 
-            <select
-              id="dish-input-category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 text-sm pl-4 pr-4 py-3 rounded-sm focus:bg-white focus:border-[#C5A059] focus:outline-none transition-colors cursor-pointer"
-            >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+            <div ref={categoryDropdownRef} className="relative">
+              <button
+                type="button"
+                aria-labelledby="dish-category-label"
+                onClick={() =>
+                  setIsCategoryDropdownOpen((currentValue) => !currentValue)
+                }
+                className="w-full h-[46px] bg-neutral-50 border border-neutral-200 text-sm pl-3 pr-3 rounded-sm focus:bg-white focus:border-[#C5A059] focus:outline-none transition-colors cursor-pointer flex items-center justify-between gap-3"
+              >
+                <span className="flex items-center gap-3 min-w-0">
+                  <span className="w-8 h-8 rounded-full overflow-hidden border border-[#C5A059]/30 bg-white shrink-0 flex items-center justify-center">
+                    {selectedCategory?.image_url ? (
+                      <img
+                        src={selectedCategory.image_url}
+                        alt={selectedCategory.name}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <ImageIcon className="w-4 h-4 text-[#C5A059]" />
+                    )}
+                  </span>
+
+                  <span
+                    className={`truncate ${
+                      category ? 'text-neutral-800' : 'text-neutral-400'
+                    }`}
+                  >
+                    {category || 'Select category'}
+                  </span>
+                </span>
+
+                <ChevronDown
+                  className={`w-4 h-4 text-neutral-400 shrink-0 transition-transform ${
+                    isCategoryDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {isCategoryDropdownOpen && (
+                <div className="absolute left-0 right-0 top-full z-[80] mt-2 max-h-64 overflow-y-auto rounded-sm border border-neutral-200 bg-white shadow-xl">
+                  {dropdownCategoryOptions.length === 0 ? (
+                    <div className="px-4 py-5 text-center">
+                      <ImageIcon className="w-7 h-7 mx-auto text-[#C5A059]" />
+                      <p className="mt-2 text-sm font-semibold text-neutral-800">
+                        No categories added yet
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-400">
+                        First create category from Add Category button.
+                      </p>
+                    </div>
+                  ) : (
+                    dropdownCategoryOptions.map((cat) => {
+                      const isSelected =
+                        cat.name.trim().toLowerCase() ===
+                        category.trim().toLowerCase();
+
+                      return (
+                        <button
+                          key={cat.id || cat.name}
+                          type="button"
+                          onClick={() => handleSelectCategory(cat.name)}
+                          className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors ${
+                            isSelected
+                              ? 'bg-[#F9F6F0] text-neutral-900'
+                              : 'hover:bg-neutral-50 text-neutral-700'
+                          }`}
+                        >
+                          <span className="flex items-center gap-3 min-w-0">
+                            <span className="w-9 h-9 rounded-full overflow-hidden border border-[#C5A059]/30 bg-white shrink-0 flex items-center justify-center">
+                              {cat.image_url ? (
+                                <img
+                                  src={cat.image_url}
+                                  alt={cat.name}
+                                  className="w-full h-full object-cover"
+                                  referrerPolicy="no-referrer"
+                                  onError={(event) => {
+                                    event.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <ImageIcon className="w-4 h-4 text-[#C5A059]" />
+                              )}
+                            </span>
+
+                            <span className="truncate text-sm font-medium">
+                              {cat.name}
+                            </span>
+                          </span>
+
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-[#C5A059] shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+
+            <p className="text-[10px] text-neutral-400">
+              Categories are loaded dynamically from the categories you added.
+            </p>
           </div>
 
           <div className="space-y-1.5">
