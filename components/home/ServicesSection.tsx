@@ -128,11 +128,6 @@ export default function ServicesSection() {
                   <p className="text-sm leading-7 text-neutral-500">
                     {item.desc}
                   </p>
-
-                  <div className="mt-6 flex items-center gap-2 text-sm font-medium text-neutral-900 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
-                    <span>Explore more</span>
-                    <ArrowRight className="h-4 w-4 text-[#C5A059]" />
-                  </div>
                 </div>
               </motion.div>
             );

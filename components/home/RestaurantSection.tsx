@@ -82,19 +82,11 @@ export default function RestaurantSection() {
                 id="restaurant-browse-menu"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#C5A059] hover:bg-[#A98443] text-white font-semibold text-xs uppercase tracking-widest transition-all shadow-md hover:scale-[1.01]"
               >
-                Browse Menu <ArrowRight className="w-4 h-4" />
+                Browse Menu 
               </Link>
-              
-              <Link
-                href="/about"
-                className="text-xs uppercase tracking-widest text-neutral-500 font-bold hover:text-[#C5A059] transition-colors py-2"
-              >
-                Learn About Family Halls
-              </Link>
+            
             </div>
-
           </motion.div>
-
         </div>
       </div>
     </section>

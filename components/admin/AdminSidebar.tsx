@@ -67,7 +67,7 @@ export default function AdminSidebar({
           <div className="p-6 border-b border-neutral-800">
             <Link href="/" className="flex flex-col items-start group">
             <Image
-                            src="/logo/logo_GE.png"
+                            src="/logo/logo.png"
                             alt="Grand Emaar Logo"
                             width={90}
                             height={90}

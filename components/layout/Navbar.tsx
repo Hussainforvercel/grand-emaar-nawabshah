@@ -61,7 +61,7 @@ export default function Navbar() {
             {/* Logo area */}
             <Link href="/" className="flex items-center gap-3 group">
             <img
-              src="/logo/logo_GE.png"
+              src="/logo/logo.png"
               alt="Grand Emaar Logo"
               className="h-15 w-auto object-contain ml-8"
             />

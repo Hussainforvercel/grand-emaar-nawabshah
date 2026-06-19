@@ -91,7 +91,7 @@ export default function MenuCard({ item }: MenuCardProps) {
 
         {/* WhatsApp action */}
         <div className="pt-3 border-t border-neutral-100 flex items-center justify-between text-xs font-mono">
-          <span className="text-neutral-400">Authentic Food</span>
+          <span className="text-neutral-400">GRAND EMAAR</span>
 
           <a
             href={`https://wa.me/923082077721?text=${encodeURIComponent(

@@ -332,7 +332,7 @@ export default function MenuPage() {
                 </button>
               )}
             </div>
-
+            
             <div className="mt-3 flex items-center justify-center gap-2 text-[11px] uppercase tracking-widest font-mono text-neutral-400">
               <span>
                 Showing{' '}
