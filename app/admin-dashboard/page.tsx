@@ -8,6 +8,9 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminMenuForm from '@/components/admin/AdminMenuForm';
 import AdminMenuTable from '@/components/admin/AdminMenuTable';
+import AdminCategoryForm, {
+  CategoryFormPayload,
+} from '@/components/admin/AdminCategoryForm';
 import {
   Plus,
   Library,
@@ -17,8 +20,13 @@ import {
   AlertTriangle,
   Trash2,
   Search,
+  Tags,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+
+const MENU_STORAGE_KEY = 'grand_emaar_custom_menu_items';
+const CATEGORY_STORAGE_KEY = 'grand_emaar_menu_categories';
 
 // Shared default fallback items
 const defaultMenuDishes: MenuItem[] = [
@@ -99,6 +107,14 @@ type MenuFormPayload = Omit<MenuItem, 'id' | 'created_at'> & {
   sort_order?: number;
 };
 
+type MenuCategory = {
+  id?: string;
+  name: string;
+  image_url?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
 type DeleteTarget = {
   id: string;
   name: string;
@@ -117,8 +133,6 @@ function cleanMenuPayload(dishData: MenuFormPayload) {
     image_url: rest.image_url ? String(rest.image_url).trim() : null,
     is_available:
       typeof rest.is_available === 'boolean' ? rest.is_available : true,
-
-    // ✅ Important: this saves popular checkbox value in Supabase
     is_popular: typeof rest.is_popular === 'boolean' ? rest.is_popular : false,
   };
 
@@ -134,17 +148,32 @@ function cleanMenuPayload(dishData: MenuFormPayload) {
   return payload;
 }
 
+function cleanCategoryPayload(categoryData: CategoryFormPayload) {
+  return {
+    name: String(categoryData.name || '').trim(),
+    image_url: categoryData.image_url
+      ? String(categoryData.image_url).trim()
+      : null,
+  };
+}
+
 export default function AdminDashboardPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
+
   const [adminEmail, setAdminEmail] = useState('');
   const [isDemoMode, setIsDemoMode] = useState(!isSupabaseConfigured);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
+  const [isCategorySubmitting, setIsCategorySubmitting] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -153,6 +182,13 @@ export default function AdminDashboardPage() {
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
 
   const router = useRouter();
+
+  const categoryOptions = useMemo(() => {
+    return categories
+      .map((category) => category.name)
+      .filter(Boolean)
+      .filter((value, index, array) => array.indexOf(value) === index);
+  }, [categories]);
 
   const filteredItems = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -183,10 +219,66 @@ export default function AdminDashboardPage() {
     setEditingItem(null);
   };
 
+  const closeCategoryFormModal = () => {
+    if (isCategorySubmitting) return;
+
+    setIsCategoryFormOpen(false);
+  };
+
   const closeDeleteModal = () => {
     if (isDeleting) return;
 
     setDeleteTarget(null);
+  };
+
+  const fetchCategories = async () => {
+    setIsCategoriesLoading(true);
+
+    if (!isSupabaseConfigured || !supabase) {
+      const localCategories = localStorage.getItem(CATEGORY_STORAGE_KEY);
+
+      if (localCategories) {
+        try {
+          const parsedCategories = JSON.parse(localCategories);
+
+          if (Array.isArray(parsedCategories)) {
+            setCategories(parsedCategories);
+          } else {
+            setCategories([]);
+            localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify([]));
+          }
+        } catch {
+          setCategories([]);
+          localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify([]));
+        }
+      } else {
+        setCategories([]);
+        localStorage.setItem(CATEGORY_STORAGE_KEY, JSON.stringify([]));
+      }
+
+      setIsCategoriesLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('menu_categories')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setCategories(data || []);
+    } catch (err: any) {
+      console.error('Error fetching categories:', err);
+      setErrorStatus(
+        err.message ||
+          'Failed to read menu_categories table. Please create menu_categories table in Supabase.'
+      );
+      setCategories([]);
+    } finally {
+      setIsCategoriesLoading(false);
+    }
   };
 
   const fetchDishes = async () => {
@@ -194,7 +286,7 @@ export default function AdminDashboardPage() {
     setErrorStatus(null);
 
     if (!isSupabaseConfigured || !supabase) {
-      const localMenu = localStorage.getItem('grand_emaar_custom_menu_items');
+      const localMenu = localStorage.getItem(MENU_STORAGE_KEY);
 
       if (localMenu) {
         try {
@@ -202,14 +294,14 @@ export default function AdminDashboardPage() {
         } catch {
           setItems(defaultMenuDishes);
           localStorage.setItem(
-            'grand_emaar_custom_menu_items',
+            MENU_STORAGE_KEY,
             JSON.stringify(defaultMenuDishes)
           );
         }
       } else {
         setItems(defaultMenuDishes);
         localStorage.setItem(
-          'grand_emaar_custom_menu_items',
+          MENU_STORAGE_KEY,
           JSON.stringify(defaultMenuDishes)
         );
       }
@@ -246,6 +338,7 @@ export default function AdminDashboardPage() {
         } else {
           setAdminEmail(session.user.email || 'Admin Staff');
           fetchDishes();
+          fetchCategories();
         }
       });
     } else {
@@ -263,6 +356,7 @@ export default function AdminDashboardPage() {
 
         setIsDemoMode(true);
         fetchDishes();
+        fetchCategories();
       }
     }
 
@@ -271,7 +365,7 @@ export default function AdminDashboardPage() {
 
   // Popup open hone par background page scroll lock
   useEffect(() => {
-    if (isFormOpen || deleteTarget) {
+    if (isFormOpen || isCategoryFormOpen || deleteTarget) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -280,7 +374,7 @@ export default function AdminDashboardPage() {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isFormOpen, deleteTarget]);
+  }, [isFormOpen, isCategoryFormOpen, deleteTarget]);
 
   // ESC key se popup close
   useEffect(() => {
@@ -289,6 +383,11 @@ export default function AdminDashboardPage() {
 
       if (deleteTarget && !isDeleting) {
         closeDeleteModal();
+        return;
+      }
+
+      if (isCategoryFormOpen && !isCategorySubmitting) {
+        closeCategoryFormModal();
         return;
       }
 
@@ -302,7 +401,14 @@ export default function AdminDashboardPage() {
     return () => {
       window.removeEventListener('keydown', handleEscape);
     };
-  }, [isFormOpen, isSubmitting, deleteTarget, isDeleting]);
+  }, [
+    isFormOpen,
+    isSubmitting,
+    isCategoryFormOpen,
+    isCategorySubmitting,
+    deleteTarget,
+    isDeleting,
+  ]);
 
   const showBanner = (msg: string, isError = false) => {
     if (isError) {
@@ -317,6 +423,80 @@ export default function AdminDashboardPage() {
       setSuccessMsg(null);
       setErrorStatus(null);
     }, 4500);
+  };
+
+  const handleCategorySubmit = async (categoryData: CategoryFormPayload) => {
+    setIsCategorySubmitting(true);
+    setSuccessMsg(null);
+    setErrorStatus(null);
+
+    const cleanedPayload = cleanCategoryPayload(categoryData);
+
+    if (!cleanedPayload.name) {
+      showBanner('Category name is required.', true);
+      setIsCategorySubmitting(false);
+      return;
+    }
+
+    const alreadyExists = categories.some(
+      (category) =>
+        category.name.trim().toLowerCase() ===
+        cleanedPayload.name.trim().toLowerCase()
+    );
+
+    if (alreadyExists) {
+      showBanner(`Category "${cleanedPayload.name}" already exists.`, true);
+      setIsCategorySubmitting(false);
+      return;
+    }
+
+    if (isDemoMode) {
+      const newCategory: MenuCategory = {
+        id: `local-category-${Date.now()}`,
+        name: cleanedPayload.name,
+        image_url: cleanedPayload.image_url,
+        created_at: new Date().toISOString(),
+      };
+
+      const updatedCategories = [newCategory, ...categories];
+
+      setCategories(updatedCategories);
+      localStorage.setItem(
+        CATEGORY_STORAGE_KEY,
+        JSON.stringify(updatedCategories)
+      );
+
+      showBanner(`Successfully added category "${cleanedPayload.name}"!`);
+      setIsCategoryFormOpen(false);
+      setIsCategorySubmitting(false);
+      return;
+    }
+
+    if (!supabase) {
+      showBanner('Supabase client is not configured.', true);
+      setIsCategorySubmitting(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('menu_categories')
+        .insert([cleanedPayload]);
+
+      if (error) throw error;
+
+      showBanner(
+        `Successfully added category "${cleanedPayload.name}" to database!`
+      );
+
+      setIsCategoryFormOpen(false);
+      fetchCategories();
+    } catch (err: any) {
+      console.error('Error adding category:', err);
+      showBanner(err.message || 'Failed to save category.', true);
+    } finally {
+      setIsCategorySubmitting(false);
+    }
   };
 
   const handleFormSubmit = async (dishData: MenuFormPayload) => {
@@ -368,10 +548,7 @@ export default function AdminDashboardPage() {
       }
 
       setItems(updatedList);
-      localStorage.setItem(
-        'grand_emaar_custom_menu_items',
-        JSON.stringify(updatedList)
-      );
+      localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(updatedList));
 
       setIsFormOpen(false);
       setEditingItem(null);
@@ -448,10 +625,7 @@ export default function AdminDashboardPage() {
       const updatedList = items.filter((item) => item.id !== id);
 
       setItems(updatedList);
-      localStorage.setItem(
-        'grand_emaar_custom_menu_items',
-        JSON.stringify(updatedList)
-      );
+      localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(updatedList));
 
       showBanner(`Deleted dish "${name}" from local memory.`);
       setDeleteTarget(null);
@@ -487,6 +661,10 @@ export default function AdminDashboardPage() {
   const handleAddNewClick = () => {
     setEditingItem(null);
     setIsFormOpen(true);
+  };
+
+  const handleAddCategoryClick = () => {
+    setIsCategoryFormOpen(true);
   };
 
   const handleEditClick = (item: MenuItem) => {
@@ -553,19 +731,121 @@ export default function AdminDashboardPage() {
               <div className="flex items-center gap-2 text-neutral-800">
                 <Library className="w-5 h-5 text-[#C5A059]" />
                 <h2 className="font-serif text-lg font-bold">
-                  Active Dishes Database Table
+                  Restaurant Menu Management
                 </h2>
               </div>
 
-              <button
-                onClick={handleAddNewClick}
-                id="btn-add-new-dish"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white font-bold text-xs uppercase tracking-widest transition-colors shadow-md rounded-sm cursor-pointer"
-                type="button"
-              >
-                <Plus className="w-4 h-4 shrink-0" />
-                <span>Add New Dish</span>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <button
+                  onClick={handleAddCategoryClick}
+                  id="btn-add-new-category"
+                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white font-bold text-xs uppercase tracking-widest transition-colors shadow-md rounded-sm cursor-pointer"
+                  type="button"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span>Add Category</span>
+                </button>
+
+                <button
+                  onClick={handleAddNewClick}
+                  id="btn-add-new-dish"
+                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white font-bold text-xs uppercase tracking-widest transition-colors shadow-md rounded-sm cursor-pointer"
+                  type="button"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span>Add New Dish</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Dynamic Categories Section */}
+            <div className="rounded-sm border border-neutral-200 bg-white shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-neutral-100 px-4 py-4">
+                <div className="flex items-center gap-2 text-neutral-800">
+                  <Tags className="w-5 h-5 text-[#C5A059]" />
+                  <div>
+                    <h3 className="font-serif text-lg font-bold">
+                      Active Categories
+                    </h3>
+                    <p className="text-xs text-neutral-500">
+                      Categories created here will show in Add Dish form.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-xs font-mono text-neutral-500">
+                  Total{' '}
+                  <span className="font-bold text-neutral-900">
+                    {categories.length}
+                  </span>{' '}
+                  categories
+                </div>
+              </div>
+
+              <div className="p-4">
+                {isCategoriesLoading ? (
+                  <div className="flex items-center justify-center py-10 text-neutral-400">
+                    <div className="w-8 h-8 border-2 border-[#C5A059]/20 border-t-[#C5A059] rounded-full animate-spin" />
+                  </div>
+                ) : categories.length === 0 ? (
+                  <div className="rounded-sm border border-dashed border-[#C5A059]/40 bg-[#F9F6F0]/60 px-4 py-8 text-center">
+                    <Tags className="w-8 h-8 text-[#C5A059] mx-auto mb-3" />
+                    <h4 className="font-serif text-lg font-bold text-neutral-900">
+                      No Category Added Yet
+                    </h4>
+                    <p className="mt-1 text-sm text-neutral-500">
+                      Click Add Category and create your first menu category.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    {categories.map((category) => {
+                      const dishCount = items.filter(
+                        (item) =>
+                          item.category?.trim().toLowerCase() ===
+                          category.name.trim().toLowerCase()
+                      ).length;
+
+                      return (
+                        <div
+                          key={category.id || category.name}
+                          className="overflow-hidden rounded-sm border border-neutral-200 bg-white shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="aspect-[16/10] bg-neutral-100 overflow-hidden">
+                            {category.image_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={category.image_url}
+                                alt={category.name}
+                                className="h-full w-full object-cover"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center bg-[#F9F6F0]">
+                                <ImageIcon className="w-8 h-8 text-[#C5A059]" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="p-4">
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-[#C5A059] font-bold">
+                              Category
+                            </p>
+                            <h4 className="mt-1 font-serif text-lg font-bold text-neutral-900">
+                              {category.name}
+                            </h4>
+                            <p className="mt-2 text-xs text-neutral-500">
+                              {dishCount} dishes assigned
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Search Bar */}
@@ -638,7 +918,9 @@ export default function AdminDashboardPage() {
           <div className="flex gap-4">
             <span className="text-[#C5A059]">Certified Two-Star Node</span>
             <span>|</span>
-            <span className="text-neutral-500">Db Table: menu_items</span>
+            <span className="text-neutral-500">
+              Db Tables: menu_items / menu_categories
+            </span>
           </div>
         </div>
       </main>
@@ -702,6 +984,71 @@ export default function AdminDashboardPage() {
                   onSubmit={handleFormSubmit}
                   onCancel={closeFormModal}
                   isSubmitting={isSubmitting}
+                  // categoryOptions={categoryOptions}
+                  categoryOptions={categories}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Add Category Popup Modal */}
+      <AnimatePresence>
+        {isCategoryFormOpen && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="category-modal-title"
+          >
+            <button
+              type="button"
+              aria-label="Close category popup overlay"
+              className="absolute inset-0 w-full h-full cursor-default"
+              onClick={closeCategoryFormModal}
+              disabled={isCategorySubmitting}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-sm bg-[#F9F6F0] shadow-2xl border border-[#C5A059]/30"
+            >
+              <div className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-neutral-200 bg-white px-5 py-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-[#C5A059] font-bold">
+                    Grand Emaar Admin
+                  </p>
+                  <h3
+                    id="category-modal-title"
+                    className="font-serif text-xl font-bold text-neutral-900"
+                  >
+                    Add New Menu Category
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeCategoryFormModal}
+                  disabled={isCategorySubmitting}
+                  className="w-9 h-9 inline-flex items-center justify-center rounded-sm border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Close category popup"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-5 md:p-6">
+                <AdminCategoryForm
+                  onSubmit={handleCategorySubmit}
+                  onCancel={closeCategoryFormModal}
+                  isSubmitting={isCategorySubmitting}
                 />
               </div>
             </motion.div>
