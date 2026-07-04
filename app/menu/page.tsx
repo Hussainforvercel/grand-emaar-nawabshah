@@ -10,15 +10,55 @@ import WelcomePopup from '@/components/common/WelcomePopup';
 import { MenuItem } from '@/types/menu';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { getWhatsAppLink } from '@/lib/whatsapp';
-import { Search, UtensilsCrossed, X } from 'lucide-react';
+import {
+  Search,
+  UtensilsCrossed,
+  X,
+  ShoppingBag,
+  Plus,
+  Minus,
+  Trash2,
+  MessageCircle,
+} from 'lucide-react';
 import WhatsAppButton from '@/components/common/WhatsAppButton';
+
+interface CartItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
 
 export default function MenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>(['All']);
   const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isOrderOpen, setIsOrderOpen] = useState(false);
+
+  const [customerName, setCustomerName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const savedCart = localStorage.getItem('grand_emaar_cart');
+
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch {
+        setCartItems([]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('grand_emaar_cart', JSON.stringify(cartItems));
+  }, [cartItems]);
 
   useEffect(() => {
     async function fetchMenuAndCategories() {
@@ -32,31 +72,25 @@ export default function MenuPage() {
       }
 
       try {
-        const { data: menuData, error: menuError } = await supabase
+        const { data, error } = await supabase
           .from('menu_items')
           .select('*')
           .eq('is_available', true)
           .order('sort_order', { ascending: true })
           .order('name', { ascending: true });
 
-        if (menuError) {
-          throw menuError;
-        }
+        if (error) throw error;
 
-        const fetchedItems = (menuData || []) as MenuItem[];
+        const fetchedItems = (data || []) as MenuItem[];
         setItems(fetchedItems);
 
         const uniqueCategories = Array.from(
-          new Set(
-            fetchedItems
-              .map((item) => item.category)
-              .filter(Boolean)
-          )
+          new Set(fetchedItems.map((item) => item.category).filter(Boolean))
         );
 
         setCategories(['All', ...uniqueCategories]);
-      } catch (err) {
-        console.error('Error fetching menu:', err);
+      } catch (error) {
+        console.error('Error fetching menu:', error);
         setItems([]);
         setCategories(['All']);
       } finally {
@@ -67,6 +101,58 @@ export default function MenuPage() {
     fetchMenuAndCategories();
   }, []);
 
+  const addToCart = (item: MenuItem) => {
+    setCartItems((prev) => {
+      const existingItem = prev.find((cartItem) => cartItem.name === item.name);
+
+      if (existingItem) {
+        return prev.map((cartItem) =>
+          cartItem.name === item.name
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            : cartItem
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          name: item.name,
+          quantity: 1,
+          price: Number(item.price),
+        },
+      ];
+    });
+  };
+
+  const increaseQty = (name: string) => {
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.name === name ? { ...item, quantity: item.quantity + 1 } : item
+      )
+    );
+  };
+
+  const decreaseQty = (name: string) => {
+    setCartItems((prev) =>
+      prev
+        .map((item) =>
+          item.name === name ? { ...item, quantity: item.quantity - 1 } : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
+  };
+
+  const removeItem = (name: string) => {
+    setCartItems((prev) => prev.filter((item) => item.name !== name));
+  };
+
+  const cartTotal = cartItems.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0
+  );
+
+  const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+
   const filteredItems = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
@@ -75,9 +161,7 @@ export default function MenuPage() {
         ? items
         : items.filter((item) => item.category === activeCategory);
 
-    if (!query) {
-      return categoryFiltered;
-    }
+    if (!query) return categoryFiltered;
 
     return categoryFiltered.filter((item) => {
       const searchableText = [
@@ -95,15 +179,65 @@ export default function MenuPage() {
     });
   }, [items, activeCategory, searchQuery]);
 
-  const askMenuMessage =
-    'Hello Grand Emaar Hotel, I want to know about your menu.';
+  const getSingleItemWhatsAppMessage = (item: MenuItem) =>
+    `Hello Grand Emaar Hotel, I want to order:%0A%0A1x ${item.name}%0APrice: Rs. ${Number(
+      item.price
+    ).toLocaleString()}`;
+
+  const orderMessage = `Hello Grand Emaar Hotel, I want to place this order:%0A%0A${cartItems
+    .map(
+      (item) =>
+        `${item.quantity}x ${item.name} - Rs. ${item.price * item.quantity}`
+    )
+    .join('%0A')}%0A%0ATotal: Rs. ${cartTotal}`;
+
+  const handleSubmitOrder = async () => {
+    if (!customerName || !phone || cartItems.length === 0) {
+      alert('Please add items and enter your name and phone number.');
+      return;
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      alert('Order system is not connected with database.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const { error } = await supabase.from('orders').insert({
+      customer_name: customerName,
+      phone,
+      address,
+      items: cartItems,
+      total_amount: cartTotal,
+      status: 'pending',
+      notes,
+    });
+
+    setIsSubmitting(false);
+
+    if (error) {
+      alert('Order submit nahi hua. Supabase orders table check karo.');
+      console.error(error);
+      return;
+    }
+
+    alert('Your order has been submitted successfully.');
+
+    setCartItems([]);
+    setCustomerName('');
+    setPhone('');
+    setAddress('');
+    setNotes('');
+    setIsOrderOpen(false);
+  };
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between">
       <WelcomePopup duration={3000} logoSrc="/logo/logo.png" />
 
       <div>
-        <Navbar />
+        <Navbar cartCount={cartCount} onCartClick={() => setIsOrderOpen(true)} />
 
         <section className="bg-neutral-950 text-white py-16 border-b border-[#C5A059]/15 relative">
           <div className="absolute inset-0 z-0 opacity-20">
@@ -144,26 +278,22 @@ export default function MenuPage() {
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-red-500"
                   aria-label="Clear search"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-red-500 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
               )}
             </div>
 
-            <div className="mt-3 flex items-center justify-center gap-2 text-[11px] uppercase tracking-widest font-mono text-neutral-400">
-              <span>
-                Showing{' '}
-                <span className="text-neutral-900 font-bold">
-                  {filteredItems.length}
-                </span>{' '}
-                of{' '}
-                <span className="text-neutral-900 font-bold">
-                  {items.length}
-                </span>{' '}
-                dishes
-              </span>
+            <div className="mt-3 text-center text-[11px] uppercase tracking-widest font-mono text-neutral-400">
+              Showing{' '}
+              <span className="text-neutral-900 font-bold">
+                {filteredItems.length}
+              </span>{' '}
+              of{' '}
+              <span className="text-neutral-900 font-bold">{items.length}</span>{' '}
+              dishes
             </div>
           </div>
 
@@ -175,17 +305,14 @@ export default function MenuPage() {
             />
           </div>
 
-          {searchQuery.trim() && filteredItems.length === 0 && !isLoading && (
-            <div className="mb-10 max-w-xl mx-auto text-center px-5 py-5 bg-amber-50 border border-amber-200 rounded-sm">
-              <p className="text-sm text-amber-700">
-                No dish found for{' '}
-                <span className="font-semibold">"{searchQuery}"</span>. Try
-                another dish name, category or price.
-              </p>
-            </div>
-          )}
-
-          <MenuGrid items={filteredItems} isLoading={isLoading} />
+         <MenuGrid
+  items={filteredItems}
+  isLoading={isLoading}
+  onOrderInRestaurant={(item) => {
+    addToCart(item);
+    setIsOrderOpen(true);
+  }}
+/>
 
           {!isLoading && items.length === 0 && (
             <div className="mt-10 max-w-xl mx-auto text-center px-5 py-6 bg-neutral-50 border border-neutral-200 rounded-sm">
@@ -195,35 +322,172 @@ export default function MenuPage() {
             </div>
           )}
 
-          <div className="mt-16 bg-neutral-950/5 border border-neutral-200/80 p-8 text-center rounded-sm space-y-6 max-w-2xl mx-auto select-none">
+          <div className="mt-16 bg-neutral-950/5 border border-neutral-200/80 p-8 text-center rounded-sm space-y-6 max-w-2xl mx-auto">
             <UtensilsCrossed className="w-8 h-8 text-[#C5A059] mx-auto" />
 
-            <div className="space-y-2">
-              <h3 className="font-serif text-xl font-bold text-neutral-900">
-                Custom Meal Queries or Catering Events?
-              </h3>
+            <h3 className="font-serif text-xl font-bold text-neutral-900">
+              Ready to Order?
+            </h3>
 
-              <p className="text-sm text-neutral-500 font-light leading-relaxed max-w-md mx-auto">
-                Need extra spice customization, allergy exclusions, custom family
-                combos, or outdoor home catering in Nawabshah? Click below to ask
-                our service managers in a direct chat.
-              </p>
-            </div>
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsOrderOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-neutral-900 text-white text-xs font-bold uppercase tracking-widest rounded-sm"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                View Bucket
+              </button>
 
-            <div className="pt-2">
               <a
-                href={getWhatsAppLink(askMenuMessage)}
+                href={getWhatsAppLink(orderMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
-                id="menu-ask-menu-cta"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#C5A059] hover:bg-[#A98443] text-white text-xs font-bold uppercase tracking-widest transition-all rounded-sm shadow-md"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-xs font-bold uppercase tracking-widest rounded-sm"
               >
-                ASK ABOUT MENU ON WHATSAPP
+                <MessageCircle className="w-4 h-4" />
+                Order Bucket on WhatsApp
               </a>
             </div>
           </div>
         </section>
       </div>
+
+      {isOrderOpen && (
+        <div className="fixed inset-0 z-[9999] bg-black/60 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setIsOrderOpen(false)}
+            className="absolute inset-0"
+            aria-label="Close order bucket"
+          />
+
+          <div className="relative bg-white w-full max-w-md h-screen overflow-y-auto p-6">
+            <div className="flex items-center justify-between border-b pb-4">
+              <h2 className="font-serif text-2xl font-bold text-neutral-900">
+                Order Bucket
+              </h2>
+
+              <button onClick={() => setIsOrderOpen(false)} type="button">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {cartItems.length === 0 ? (
+              <div className="py-16 text-center">
+                <ShoppingBag className="w-12 h-12 mx-auto text-neutral-300 mb-3" />
+
+                <p className="text-sm text-neutral-500">
+                  No items added yet.
+                </p>
+              </div>
+            ) : (
+              <div className="py-5 space-y-4">
+                {cartItems.map((item) => (
+                  <div
+                    key={item.name}
+                    className="border border-neutral-200 p-3 rounded-sm"
+                  >
+                    <div className="flex justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold text-neutral-900">
+                          {item.name}
+                        </h3>
+
+                        <p className="text-sm text-neutral-500">
+                          Rs. {item.price} x {item.quantity}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => removeItem(item.name)}
+                        type="button"
+                        className="text-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        onClick={() => decreaseQty(item.name)}
+                        type="button"
+                        className="w-8 h-8 border rounded-sm flex items-center justify-center"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </button>
+
+                      <span className="text-sm font-bold">{item.quantity}</span>
+
+                      <button
+                        onClick={() => increaseQty(item.name)}
+                        type="button"
+                        className="w-8 h-8 border rounded-sm flex items-center justify-center"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="border-t pt-4 flex justify-between font-bold text-lg">
+                  <span>Total</span>
+                  <span>Rs. {cartTotal.toLocaleString()}</span>
+                </div>
+
+                <input
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="Your Name"
+                  className="w-full border px-4 py-3 text-sm outline-none"
+                />
+
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Phone Number"
+                  className="w-full border px-4 py-3 text-sm outline-none"
+                />
+
+                <textarea
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Table Number / Delivery Address"
+                  rows={3}
+                  className="w-full border px-4 py-3 text-sm outline-none"
+                />
+
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Special Instructions"
+                  rows={2}
+                  className="w-full border px-4 py-3 text-sm outline-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleSubmitOrder}
+                  disabled={isSubmitting}
+                  className="w-full bg-neutral-900 text-white py-3 text-xs font-bold uppercase tracking-widest rounded-sm disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Complete Restaurant Order'}
+                </button>
+
+                <a
+                  href={getWhatsAppLink(orderMessage)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex justify-center items-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 text-xs font-bold uppercase tracking-widest rounded-sm"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Order Bucket on WhatsApp
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <WhatsAppButton
         variant="floating"
