@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Printer, X, Table2, Phone } from 'lucide-react';
+import { Printer, X, Table2, Phone, ImageIcon } from 'lucide-react';
 
 interface OrderItem {
   name: string;
@@ -49,7 +49,7 @@ export default function AdminInvoiceModal({
         <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 print:hidden">
           <div className="flex items-center gap-3">
             <Image
-              src="/logo.png"
+              src="/logo/logo.png"
               alt="Grand Emaar Logo"
               width={44}
               height={44}
@@ -81,7 +81,7 @@ export default function AdminInvoiceModal({
             <div className="flex flex-col sm:flex-row sm:justify-between gap-4 border-b border-neutral-200 pb-4">
               <div className="flex items-start gap-4">
                 <Image
-                  src="/logo.png"
+                  src="/logo/logo.png"
                   alt="Grand Emaar Logo"
                   width={70}
                   height={70}
@@ -195,16 +195,27 @@ export default function AdminInvoiceModal({
 
                 <tbody>
                   {order.items?.map((item, index) => (
-                    <tr key={index} className="border-b border-neutral-100">
+                    <tr
+                      key={`${item.name}-${index}`}
+                      className="border-b border-neutral-100"
+                    >
                       <td className="py-3">
                         <div className="flex items-center gap-3">
-                          <div className="relative w-11 h-11 rounded-sm overflow-hidden bg-neutral-200 shrink-0 print:hidden">
-                            <Image
-                              src={item.image_url || '/placeholder-food.jpg'}
-                              alt={item.name}
-                              fill
-                              className="object-cover"
-                            />
+                          <div className="relative w-11 h-11 rounded-sm overflow-hidden bg-neutral-100 shrink-0 print:hidden">
+                            {item.image_url ? (
+                              <Image
+                                src={item.image_url}
+                                alt={item.name}
+                                fill
+                                sizes="44px"
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-neutral-400">
+                                <ImageIcon className="w-5 h-5" />
+                              </div>
+                            )}
                           </div>
 
                           <p className="font-semibold text-neutral-900">
