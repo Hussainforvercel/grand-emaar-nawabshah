@@ -26,6 +26,7 @@ interface CartItem {
   name: string;
   quantity: number;
   price: number;
+  image?: string;
 }
 
 export default function MenuPage() {
@@ -119,6 +120,7 @@ export default function MenuPage() {
           name: item.name,
           quantity: 1,
           price: Number(item.price),
+          image: item.image_url || '',
         },
       ];
     });
@@ -178,11 +180,6 @@ export default function MenuPage() {
       return searchableText.includes(query);
     });
   }, [items, activeCategory, searchQuery]);
-
-  const getSingleItemWhatsAppMessage = (item: MenuItem) =>
-    `Hello Grand Emaar Hotel, I want to order:%0A%0A1x ${item.name}%0APrice: Rs. ${Number(
-      item.price
-    ).toLocaleString()}`;
 
   const orderMessage = `Hello Grand Emaar Hotel, I want to place this order:%0A%0A${cartItems
     .map(
@@ -305,14 +302,14 @@ export default function MenuPage() {
             />
           </div>
 
-         <MenuGrid
-  items={filteredItems}
-  isLoading={isLoading}
-  onOrderInRestaurant={(item) => {
-    addToCart(item);
-    setIsOrderOpen(true);
-  }}
-/>
+          <MenuGrid
+            items={filteredItems}
+            isLoading={isLoading}
+            onOrderInRestaurant={(item) => {
+              addToCart(item);
+              setIsOrderOpen(true);
+            }}
+          />
 
           {!isLoading && items.length === 0 && (
             <div className="mt-10 max-w-xl mx-auto text-center px-5 py-6 bg-neutral-50 border border-neutral-200 rounded-sm">
@@ -343,7 +340,7 @@ export default function MenuPage() {
                 href={getWhatsAppLink(orderMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-xs font-bold uppercase tracking-widest rounded-sm"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#C5A059] hover:bg-[#A98443] text-white text-xs font-bold uppercase tracking-widest rounded-sm"
               >
                 <MessageCircle className="w-4 h-4" />
                 Order Bucket on WhatsApp
@@ -353,8 +350,9 @@ export default function MenuPage() {
         </section>
       </div>
 
+      {/* Order Bucket - redesigned dark/gold theme with item images */}
       {isOrderOpen && (
-        <div className="fixed inset-0 z-[9999] bg-black/60 flex justify-end">
+        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex justify-end">
           <button
             type="button"
             onClick={() => setIsOrderOpen(false)}
@@ -362,129 +360,166 @@ export default function MenuPage() {
             aria-label="Close order bucket"
           />
 
-          <div className="relative bg-white w-full max-w-md h-screen overflow-y-auto p-6">
-            <div className="flex items-center justify-between border-b pb-4">
-              <h2 className="font-serif text-2xl font-bold text-neutral-900">
-                Order Bucket
-              </h2>
+          <div className="relative bg-neutral-950 border-l border-[#C5A059]/20 w-full max-w-md h-screen overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-neutral-950/95 backdrop-blur-sm flex items-center justify-between px-6 py-5 border-b border-[#C5A059]/15">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-[#C5A059]" />
+                <h2 className="font-serif text-2xl font-bold text-white">
+                  Order Bucket
+                </h2>
+              </div>
 
-              <button onClick={() => setIsOrderOpen(false)} type="button">
+              <button
+                onClick={() => setIsOrderOpen(false)}
+                type="button"
+                className="w-9 h-9 flex items-center justify-center rounded-full border border-[#C5A059]/30 text-[#C5A059] hover:bg-[#C5A059]/10"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {cartItems.length === 0 ? (
-              <div className="py-16 text-center">
-                <ShoppingBag className="w-12 h-12 mx-auto text-neutral-300 mb-3" />
+            <div className="px-6 pb-8">
+              {cartItems.length === 0 ? (
+                <div className="py-20 text-center">
+                  <ShoppingBag className="w-12 h-12 mx-auto text-neutral-700 mb-3" />
 
-                <p className="text-sm text-neutral-500">
-                  No items added yet.
-                </p>
-              </div>
-            ) : (
-              <div className="py-5 space-y-4">
-                {cartItems.map((item) => (
-                  <div
-                    key={item.name}
-                    className="border border-neutral-200 p-3 rounded-sm"
-                  >
-                    <div className="flex justify-between gap-3">
-                      <div>
-                        <h3 className="font-bold text-neutral-900">
-                          {item.name}
-                        </h3>
+                  <p className="text-sm text-neutral-500">
+                    No items added yet.
+                  </p>
+                </div>
+              ) : (
+                <div className="py-6 space-y-4">
+                  {cartItems.map((item) => (
+                    <div
+                      key={item.name}
+                      className="border border-[#C5A059]/15 bg-neutral-900 p-3 rounded-sm"
+                    >
+                      <div className="flex justify-between gap-3">
+                        <div className="flex gap-3">
+                          <img
+                            src={
+                              item.image ||
+                              `https://picsum.photos/seed/${encodeURIComponent(
+                                item.name
+                              )}/100/100`
+                            }
+                            alt={item.name}
+                            referrerPolicy="no-referrer"
+                            className="w-14 h-14 object-cover rounded-sm border border-[#C5A059]/20 flex-shrink-0"
+                            onError={(event) => {
+                              event.currentTarget.onerror = null;
+                              event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
+                                item.name
+                              )}/100/100`;
+                            }}
+                          />
 
-                        <p className="text-sm text-neutral-500">
-                          Rs. {item.price} x {item.quantity}
-                        </p>
+                          <div>
+                            <h3 className="font-bold text-white leading-snug">
+                              {item.name}
+                            </h3>
+
+                            <p className="text-sm text-[#C5A059] font-mono">
+                              Rs. {item.price} x {item.quantity}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => removeItem(item.name)}
+                          type="button"
+                          className="text-red-400 hover:text-red-300 shrink-0"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
 
-                      <button
-                        onClick={() => removeItem(item.name)}
-                        type="button"
-                        className="text-red-500"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="mt-3 flex items-center gap-2">
+                        <button
+                          onClick={() => decreaseQty(item.name)}
+                          type="button"
+                          className="w-8 h-8 border border-[#C5A059]/30 text-[#C5A059] hover:bg-[#C5A059]/10 rounded-sm flex items-center justify-center"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+
+                        <span className="text-sm font-bold text-white w-6 text-center">
+                          {item.quantity}
+                        </span>
+
+                        <button
+                          onClick={() => increaseQty(item.name)}
+                          type="button"
+                          className="w-8 h-8 border border-[#C5A059]/30 text-[#C5A059] hover:bg-[#C5A059]/10 rounded-sm flex items-center justify-center"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
+                  ))}
 
-                    <div className="mt-3 flex items-center gap-2">
-                      <button
-                        onClick={() => decreaseQty(item.name)}
-                        type="button"
-                        className="w-8 h-8 border rounded-sm flex items-center justify-center"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-
-                      <span className="text-sm font-bold">{item.quantity}</span>
-
-                      <button
-                        onClick={() => increaseQty(item.name)}
-                        type="button"
-                        className="w-8 h-8 border rounded-sm flex items-center justify-center"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <div className="border-t border-[#C5A059]/20 pt-4 flex justify-between items-center">
+                    <span className="text-neutral-400 uppercase text-xs tracking-widest font-mono">
+                      Total
+                    </span>
+                    <span className="text-[#C5A059] font-bold text-xl">
+                      Rs. {cartTotal.toLocaleString()}
+                    </span>
                   </div>
-                ))}
 
-                <div className="border-t pt-4 flex justify-between font-bold text-lg">
-                  <span>Total</span>
-                  <span>Rs. {cartTotal.toLocaleString()}</span>
+                  <div className="space-y-3 pt-2">
+                    <input
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Your Name"
+                      className="w-full bg-neutral-900 border border-[#C5A059]/20 text-white placeholder:text-neutral-500 px-4 py-3 text-sm outline-none rounded-sm focus:border-[#C5A059]/50"
+                    />
+
+                    <input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Phone Number"
+                      className="w-full bg-neutral-900 border border-[#C5A059]/20 text-white placeholder:text-neutral-500 px-4 py-3 text-sm outline-none rounded-sm focus:border-[#C5A059]/50"
+                    />
+
+                    <textarea
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Table Number / Delivery Address"
+                      rows={3}
+                      className="w-full bg-neutral-900 border border-[#C5A059]/20 text-white placeholder:text-neutral-500 px-4 py-3 text-sm outline-none rounded-sm focus:border-[#C5A059]/50"
+                    />
+
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Special Instructions"
+                      rows={2}
+                      className="w-full bg-neutral-900 border border-[#C5A059]/20 text-white placeholder:text-neutral-500 px-4 py-3 text-sm outline-none rounded-sm focus:border-[#C5A059]/50"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={handleSubmitOrder}
+                      disabled={isSubmitting}
+                      className="w-full bg-[#C5A059] hover:bg-[#A98443] text-white py-3.5 text-xs font-bold uppercase tracking-widest rounded-sm disabled:opacity-50 transition-colors"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Complete Restaurant Order'}
+                    </button>
+
+                    <a
+                      href={getWhatsAppLink(orderMessage)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex justify-center items-center gap-2 border border-[#C5A059]/50 hover:bg-[#C5A059]/10 text-[#C5A059] py-3.5 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Order Bucket on WhatsApp
+                    </a>
+                  </div>
                 </div>
-
-                <input
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Your Name"
-                  className="w-full border px-4 py-3 text-sm outline-none"
-                />
-
-                <input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Phone Number"
-                  className="w-full border px-4 py-3 text-sm outline-none"
-                />
-
-                <textarea
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Table Number / Delivery Address"
-                  rows={3}
-                  className="w-full border px-4 py-3 text-sm outline-none"
-                />
-
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Special Instructions"
-                  rows={2}
-                  className="w-full border px-4 py-3 text-sm outline-none"
-                />
-
-                <button
-                  type="button"
-                  onClick={handleSubmitOrder}
-                  disabled={isSubmitting}
-                  className="w-full bg-neutral-900 text-white py-3 text-xs font-bold uppercase tracking-widest rounded-sm disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Submitting...' : 'Complete Restaurant Order'}
-                </button>
-
-                <a
-                  href={getWhatsAppLink(orderMessage)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex justify-center items-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 text-xs font-bold uppercase tracking-widest rounded-sm"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  Order Bucket on WhatsApp
-                </a>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
