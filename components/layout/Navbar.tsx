@@ -3,20 +3,23 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu as MenuIcon, X, MapPin } from 'lucide-react';
+import { Menu as MenuIcon, X, MapPin, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { getWhatsAppLink } from '@/lib/whatsapp';
 
-export default function Navbar() {
+interface NavbarProps {
+  cartCount?: number;
+  onCartClick?: () => void;
+}
+
+export default function Navbar({ cartCount = 0, onCartClick }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
 
     window.addEventListener('scroll', handleScroll);
     handleScroll();
@@ -24,13 +27,8 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Stop background scroll when mobile menu is open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : '';
 
     return () => {
       document.body.style.overflow = '';
@@ -51,8 +49,7 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Top micro-bar for contact info */}
-      <div className="bg-neutral-900 text-[#C5A059] text-xs py-2 px-4 md:px-8 flex justify-between items-center border-b border-[#C5A059]/10 transition-all duration-300">
+      <div className="bg-neutral-900 text-[#C5A059] text-xs py-2 px-4 md:px-8 flex justify-between items-center border-b border-[#C5A059]/10">
         <div className="flex items-center gap-1.5 font-light min-w-0">
           <MapPin className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline truncate">
@@ -76,7 +73,6 @@ export default function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo area */}
             <Link href="/" className="flex items-center gap-3 group">
               <img
                 src="/logo/logo.png"
@@ -85,7 +81,6 @@ export default function Navbar() {
               />
             </Link>
 
-            {/* Desktop Navigation Links */}
             <nav className="hidden lg:flex space-x-8">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
@@ -105,11 +100,6 @@ export default function Navbar() {
                       <motion.span
                         layoutId="activeNavIndicator"
                         className="absolute bottom-0 left-0 w-full h-[2px] bg-[#C5A059]"
-                        transition={{
-                          type: 'spring',
-                          stiffness: 380,
-                          damping: 30,
-                        }}
                       />
                     )}
                   </Link>
@@ -117,25 +107,49 @@ export default function Navbar() {
               })}
             </nav>
 
-            {/* Desktop Right Action */}
             <div className="hidden lg:flex items-center gap-4">
+              <button
+                type="button"
+                onClick={onCartClick}
+                className="relative w-11 h-11 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-700 hover:text-[#C5A059] hover:border-[#C5A059]"
+              >
+                <ShoppingBag className="w-5 h-5" />
+
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#C5A059] text-white text-[10px] font-bold flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+
               <a
                 href={whatsAppLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                id="navbar-whatsapp-cta"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white bg-[#C5A059] hover:bg-[#A98443] transition-colors rounded-full"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white bg-[#C5A059] hover:bg-[#A98443] rounded-full"
               >
                 WhatsApp Book
               </a>
             </div>
 
-            {/* Mobile Hamburger Button */}
-            <div className="flex items-center lg:hidden">
+            <div className="flex items-center gap-3 lg:hidden">
+              <button
+                type="button"
+                onClick={onCartClick}
+                className="relative w-10 h-10 rounded-full border border-neutral-200 flex items-center justify-center"
+              >
+                <ShoppingBag className="w-5 h-5" />
+
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#C5A059] text-white text-[10px] font-bold flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+
               <button
                 onClick={() => setIsOpen(true)}
-                className="text-neutral-700 hover:text-[#C5A059] focus:outline-none p-1.5 rounded"
-                aria-label="Open Menu"
+                className="text-neutral-700 hover:text-[#C5A059] p-1.5 rounded"
                 type="button"
               >
                 <MenuIcon className="w-6 h-6" />
@@ -145,33 +159,22 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Full Screen Right Drawer */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            className="fixed inset-0 z-50 lg:hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {/* Dark overlay */}
+          <motion.div className="fixed inset-0 z-50 lg:hidden">
             <button
               type="button"
-              aria-label="Close Menu Overlay"
               onClick={() => setIsOpen(false)}
               className="absolute inset-0 bg-black/50"
             />
 
-            {/* Right side drawer */}
             <motion.aside
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ duration: 0.35, ease: 'easeInOut' }}
               className="absolute right-0 top-0 h-screen w-full bg-white shadow-2xl overflow-y-auto"
             >
               <div className="min-h-screen flex flex-col">
-                {/* Drawer Header */}
                 <div className="flex items-center justify-between px-5 py-5 border-b border-neutral-100">
                   <Link href="/" onClick={() => setIsOpen(false)}>
                     <img
@@ -183,69 +186,61 @@ export default function Navbar() {
 
                   <button
                     onClick={() => setIsOpen(false)}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-neutral-100 text-neutral-800 hover:bg-[#C5A059] hover:text-white transition-colors"
-                    aria-label="Close Menu"
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-neutral-100"
                     type="button"
                   >
                     <X className="w-6 h-6" />
                   </button>
                 </div>
 
-                {/* Drawer Links */}
                 <nav className="flex-1 px-5 py-8">
                   <div className="space-y-3">
-                    {navLinks.map((link, index) => {
+                    {navLinks.map((link) => {
                       const isActive = pathname === link.href;
 
                       return (
-                        <motion.div
+                        <Link
                           key={link.href}
-                          initial={{ opacity: 0, x: 30 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.08 * index }}
+                          href={link.href}
+                          onClick={() => setIsOpen(false)}
+                          className={cn(
+                            'flex items-center justify-between w-full px-5 py-4 rounded-2xl text-base tracking-widest uppercase font-semibold border',
+                            isActive
+                              ? 'text-[#C5A059] border-[#C5A059]/30 bg-[#C5A059]/10'
+                              : 'text-neutral-700 border-neutral-100 bg-neutral-50'
+                          )}
                         >
-                          <Link
-                            href={link.href}
-                            onClick={() => setIsOpen(false)}
-                            className={cn(
-                              'flex items-center justify-between w-full px-5 py-4 rounded-2xl text-base tracking-widest uppercase font-semibold transition-all duration-200 border',
-                              isActive
-                                ? 'text-[#C5A059] border-[#C5A059]/30 bg-[#C5A059]/10'
-                                : 'text-neutral-700 border-neutral-100 bg-neutral-50 hover:text-[#C5A059] hover:border-[#C5A059]/30'
-                            )}
-                          >
-                            {link.label}
-                            <span className="text-lg">→</span>
-                          </Link>
-                        </motion.div>
+                          {link.label}
+                          <span>→</span>
+                        </Link>
                       );
                     })}
                   </div>
 
-                  <div className="mt-8 pt-6 border-t border-neutral-100">
+                  <div className="mt-8 pt-6 border-t border-neutral-100 space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false);
+                        onCartClick?.();
+                      }}
+                      className="w-full flex justify-center items-center gap-2 px-5 py-4 bg-neutral-900 text-white text-xs uppercase font-bold tracking-widest rounded-full"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      View Bucket ({cartCount})
+                    </button>
+
                     <a
                       href={whatsAppLink}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setIsOpen(false)}
-                      className="flex justify-center items-center gap-2 px-5 py-4 bg-[#C5A059] text-white text-xs uppercase font-bold tracking-widest hover:bg-[#A98443] rounded-full transition-colors text-center"
+                      className="flex justify-center items-center gap-2 px-5 py-4 bg-[#C5A059] text-white text-xs uppercase font-bold tracking-widest rounded-full"
                     >
                       Contact on WhatsApp
                     </a>
                   </div>
                 </nav>
-
-                {/* Drawer Footer */}
-                <div className="px-5 py-5 border-t border-neutral-100 bg-neutral-50">
-                  <div className="flex items-start gap-2 text-xs text-neutral-500">
-                    <MapPin className="w-4 h-4 text-[#C5A059] shrink-0 mt-0.5" />
-                    <p>Opposite H.M Khoja Tower, Nawabshah, Pakistan</p>
-                  </div>
-
-                  <p className="mt-3 text-xs font-semibold text-neutral-700">
-                    Call: +92 308 2077721
-                  </p>
-                </div>
               </div>
             </motion.aside>
           </motion.div>
