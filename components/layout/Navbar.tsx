@@ -79,7 +79,7 @@ export default function Navbar() {
             {/* Logo area */}
             <Link href="/" className="flex items-center gap-3 group">
               <img
-                src="/logo/logo_GE.png"
+                src="/logo/logo.png"
                 alt="Grand Emaar Logo"
                 className="h-14 sm:h-16 w-auto object-contain"
               />
@@ -175,7 +175,7 @@ export default function Navbar() {
                 <div className="flex items-center justify-between px-5 py-5 border-b border-neutral-100">
                   <Link href="/" onClick={() => setIsOpen(false)}>
                     <img
-                      src="/logo/logo_GE.png"
+                      src="/logo/logo.png"
                       alt="Grand Emaar Logo"
                       className="h-14 w-auto object-contain"
                     />

@@ -6,6 +6,7 @@ import Footer from '@/components/layout/Footer';
 import SectionTitle from '@/components/common/SectionTitle';
 import CategoryFilter from '@/components/menu/CategoryFilter';
 import MenuGrid from '@/components/menu/MenuGrid';
+import WelcomePopup from '@/components/common/WelcomePopup';
 import { MenuItem } from '@/types/menu';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { getWhatsAppLink } from '@/lib/whatsapp';
@@ -271,6 +272,9 @@ export default function MenuPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col justify-between">
+      {/* Welcome popup - logo + greeting + live time, auto-closes after a few seconds */}
+      <WelcomePopup duration={3000} logoSrc="/logo/logo.png" />
+
       <div>
         <Navbar />
 
@@ -410,3 +414,5 @@ export default function MenuPage() {
     </div>
   );
 }
+
+
