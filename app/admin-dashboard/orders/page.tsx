@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import {
@@ -20,6 +20,7 @@ import {
   XCircle,
   ChevronDown,
   ImageIcon,
+  BellRing,
 } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminInvoiceModal from '@/components/admin/AdminInvoiceModal';
@@ -69,11 +70,16 @@ const normalizeName = (name: string) => name.trim().toLowerCase();
 export default function AdminOrdersPage() {
   const router = useRouter();
 
+  const orderBellAudioRef = useRef<HTMLAudioElement | null>(null);
+
   const [orders, setOrders] = useState<Order[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuImageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminEmail, setAdminEmail] = useState('');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] =
     useState<Order | null>(null);
+  const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(false);
 
   const stats = useMemo(() => {
     const completedOrders = orders.filter(
@@ -101,6 +107,32 @@ export default function AdminOrdersPage() {
     router.push('/admin-login');
   };
 
+  const enableOrderSound = async () => {
+    try {
+      if (!orderBellAudioRef.current) return;
+
+      orderBellAudioRef.current.volume = 0.9;
+      await orderBellAudioRef.current.play();
+      orderBellAudioRef.current.pause();
+      orderBellAudioRef.current.currentTime = 0;
+
+      setIsSoundEnabled(true);
+    } catch {
+      setIsSoundEnabled(false);
+    }
+  };
+
+  const playOrderBell = async () => {
+    try {
+      if (!orderBellAudioRef.current || !isSoundEnabled) return;
+
+      orderBellAudioRef.current.currentTime = 0;
+      await orderBellAudioRef.current.play();
+    } catch (error) {
+      console.log('Order bell sound blocked by browser:', error);
+    }
+  };
+
   const attachRealDishImages = (
     ordersData: Order[],
     menuItemsData: MenuImageItem[]
@@ -115,14 +147,22 @@ export default function AdminOrdersPage() {
 
     return ordersData.map((order) => ({
       ...order,
-      items: order.items.map((item) => ({
+      items: (order.items || []).map((item) => ({
         ...item,
         image_url:
-          item.image_url ||
-          imageMap.get(normalizeName(item.name)) ||
-          null,
+          item.image_url || imageMap.get(normalizeName(item.name)) || null,
       })),
     }));
+  };
+
+  const fetchMenuImages = async () => {
+    if (!supabase) return [];
+
+    const { data } = await supabase.from('menu_items').select('name, image_url');
+    const menuData = (data || []) as MenuImageItem[];
+
+    setMenuItems(menuData);
+    return menuData;
   };
 
   const fetchOrders = async () => {
@@ -134,25 +174,51 @@ export default function AdminOrdersPage() {
 
     setLoading(true);
 
-    const [{ data: ordersData, error: ordersError }, { data: menuItemsData }] =
+    const [{ data: ordersData, error: ordersError }, menuData] =
       await Promise.all([
         supabase
           .from('orders')
           .select('*')
           .order('created_at', { ascending: false }),
-        supabase.from('menu_items').select('name, image_url'),
+        fetchMenuImages(),
       ]);
 
     if (!ordersError && ordersData) {
-      const ordersWithRealImages = attachRealDishImages(
-        ordersData as Order[],
-        (menuItemsData || []) as MenuImageItem[]
-      );
-
-      setOrders(ordersWithRealImages);
+      setOrders(attachRealDishImages(ordersData as Order[], menuData));
     }
 
     setLoading(false);
+  };
+
+  const fetchSingleOrder = async (orderId: string) => {
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !data) return null;
+
+    return attachRealDishImages([data as Order], menuItems)[0];
+  };
+
+  const showNewOrderNotification = (order: Order) => {
+    setNewOrderAlert(order);
+    playOrderBell();
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('New Order Received', {
+        body: `${order.customer_name} - Rs. ${Number(
+          order.total_amount
+        ).toLocaleString()} - Table No: ${order.address || 'N/A'}`,
+      });
+    }
+
+    setTimeout(() => {
+      setNewOrderAlert(null);
+    }, 6000);
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
@@ -220,8 +286,128 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }, []);
 
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!supabase || !isSupabaseConfigured) return;
+
+    const channel = supabase
+      .channel('admin-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+        },
+        async (payload) => {
+          const insertedOrder = payload.new as Order;
+
+          const orderWithImage =
+            (await fetchSingleOrder(insertedOrder.id)) ||
+            attachRealDishImages([insertedOrder], menuItems)[0];
+
+          setOrders((prev) => {
+            const alreadyExists = prev.some(
+              (order) => order.id === orderWithImage.id
+            );
+
+            if (alreadyExists) return prev;
+
+            return [orderWithImage, ...prev];
+          });
+
+          showNewOrderNotification(orderWithImage);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+        },
+        async (payload) => {
+          const updatedOrder = payload.new as Order;
+
+          const orderWithImage =
+            (await fetchSingleOrder(updatedOrder.id)) ||
+            attachRealDishImages([updatedOrder], menuItems)[0];
+
+          setOrders((prev) =>
+            prev.map((order) =>
+              order.id === orderWithImage.id ? orderWithImage : order
+            )
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          const deletedOrder = payload.old as Order;
+
+          setOrders((prev) =>
+            prev.filter((order) => order.id !== deletedOrder.id)
+          );
+        }
+      )
+      .subscribe((status) => {
+        console.log('Orders realtime status:', status);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [menuItems, isSoundEnabled]);
+
   return (
     <>
+      <audio
+        ref={orderBellAudioRef}
+        src="/order-bell.mp3"
+        preload="auto"
+      />
+
+      {!isSoundEnabled && (
+        <button
+          onClick={enableOrderSound}
+          type="button"
+          className="fixed bottom-5 right-5 z-[9999] inline-flex items-center gap-2 bg-[#C5A059] text-white px-4 py-3 rounded-sm shadow-xl text-xs font-bold uppercase tracking-widest print:hidden"
+        >
+          <BellRing className="w-4 h-4" />
+          Enable Order Bell
+        </button>
+      )}
+
+      {newOrderAlert && (
+        <div className="fixed top-5 right-5 z-[9999] bg-neutral-900 text-white border border-[#C5A059]/40 shadow-2xl px-5 py-4 rounded-sm max-w-sm print:hidden">
+          <div className="flex items-start gap-3">
+            <BellRing className="w-5 h-5 text-[#C5A059] shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-[#C5A059]">
+                New Order Received
+              </p>
+              <p className="mt-1 text-sm font-semibold">
+                {newOrderAlert.customer_name}
+              </p>
+              <p className="text-xs text-neutral-300">
+                Rs. {Number(newOrderAlert.total_amount).toLocaleString()} •
+                Table No: {newOrderAlert.address || 'N/A'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="h-screen bg-neutral-100 flex overflow-hidden">
         <div className="w-64 h-screen shrink-0 sticky top-0 print:hidden">
           <AdminSidebar
@@ -243,8 +429,7 @@ export default function AdminOrdersPage() {
               </h1>
 
               <p className="mt-1 text-sm text-neutral-500">
-                Manage customer orders, update status, view details and print
-                invoices.
+                Realtime orders enabled. New orders will appear automatically.
               </p>
             </div>
 
@@ -314,8 +499,8 @@ export default function AdminOrdersPage() {
                 Recent Orders
               </h2>
               <p className="text-sm text-neutral-500">
-                Customer order list with real dish images, table number, status
-                and invoice action.
+                Live customer orders with real dish images, table number,
+                status and invoice action.
               </p>
             </div>
 
