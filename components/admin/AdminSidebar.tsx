@@ -10,6 +10,7 @@ import {
   Utensils,
   X,
   ShoppingBag,
+  Tags,
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -61,6 +62,11 @@ export default function AdminSidebar({
       icon: Utensils,
     },
     {
+      label: 'Categories',
+      href: '/admin-dashboard/categories',
+      icon: Tags,
+    },
+    {
       label: 'Orders',
       href: '/admin-dashboard/orders',
       icon: ShoppingBag,
@@ -73,14 +79,15 @@ export default function AdminSidebar({
         <div>
           <div className="p-6 border-b border-neutral-800">
             <Link href="/" className="flex flex-col items-start group">
-            <Image
-                            src="/logo/logo.png"
-                            alt="Grand Emaar Logo"
-                            width={90}
-                            height={90}
-                            priority
-                            className="mb-3 ml-7 object-contain"
-                            />
+              <Image
+                src="/logo/logo.png"
+                alt="Grand Emaar Logo"
+                width={90}
+                height={90}
+                priority
+                className="mb-3 ml-7 object-contain"
+              />
+
               <span className="font-serif text-lg font-bold tracking-tight text-white group-hover:text-[#C5A059] transition-colors">
                 GRAND EMAAR
               </span>

@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 import { MenuItem } from '@/types/menu';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminHeader from '@/components/admin/AdminHeader';
-import AdminDishesManager from '@/components/admin/AdminDishesManager';
-import { MenuCategory } from '@/components/admin/AdminCategoriesManager';
+import AdminCategoriesManager, {
+  MenuCategory,
+} from '@/components/admin/AdminCategoriesManager';
 
-export default function AdminDashboardPage() {
+export default function AdminCategoriesPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
-  const [categories] = useState<MenuCategory[]>([]);
+  const [, setCategories] = useState<MenuCategory[]>([]);
 
   const [adminEmail, setAdminEmail] = useState('');
   const [isDemoMode, setIsDemoMode] = useState(!isSupabaseConfigured);
@@ -105,27 +105,29 @@ export default function AdminDashboardPage() {
         isDemoMode={isDemoMode}
       />
 
-      <main className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col justify-between">
+      <main className="flex-1 overflow-y-auto p-6 md:p-10">
         <div className="space-y-8">
-          <AdminHeader items={items} />
+          <div className="bg-white border border-neutral-200 rounded-sm p-6 shadow-sm">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#C5A059] font-bold">
+              Menu Categories
+            </p>
 
-          <AdminDishesManager
+            <h1 className="mt-2 font-serif text-3xl font-bold text-neutral-900">
+              Manage Categories
+            </h1>
+
+            <p className="mt-2 text-sm text-neutral-500 max-w-2xl">
+              Yahan se aap restaurant menu ki categories add, update aur delete
+              kar sakte hain. Dishes section ab sirf food items ke liye hai.
+            </p>
+          </div>
+
+          <AdminCategoriesManager
             isDemoMode={isDemoMode}
-            categories={categories}
+            items={items}
+            onCategoriesChange={setCategories}
             onItemsChange={setItems}
           />
-        </div>
-
-        <div className="pt-12 border-t text-left flex flex-col sm:flex-row justify-between gap-4 text-xs font-mono text-neutral-400">
-          <p>&copy; Grand Emaar Hotel Nawabshah. Managerial Auth Space.</p>
-
-          <div className="flex gap-4">
-            <span className="text-[#C5A059]">Certified Two-Star Node</span>
-            <span>|</span>
-            <span className="text-neutral-500">
-              Db Tables: menu_items / menu_categories
-            </span>
-          </div>
         </div>
       </main>
     </div>
