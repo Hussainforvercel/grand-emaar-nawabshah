@@ -73,7 +73,6 @@ export default function AdminSidebar({
         <div>
           <div className="p-6 border-b border-neutral-800">
             <Link href="/" className="flex flex-col items-start group">
-<<<<<<< HEAD
             <Image
                             src="/logo/logo.png"
                             alt="Grand Emaar Logo"
@@ -82,17 +81,6 @@ export default function AdminSidebar({
                             priority
                             className="mb-3 ml-7 object-contain"
                             />
-=======
-              <Image
-                src="/logo/logo_GE.png"
-                alt="Grand Emaar Logo"
-                width={90}
-                height={90}
-                priority
-                className="mb-3 ml-7 object-contain"
-              />
-
->>>>>>> b7115f81f859dd4ed7386ee85c4ebf037d2702e4
               <span className="font-serif text-lg font-bold tracking-tight text-white group-hover:text-[#C5A059] transition-colors">
                 GRAND EMAAR
               </span>
