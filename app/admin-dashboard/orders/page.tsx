@@ -78,8 +78,21 @@ export default function AdminOrdersPage() {
   const [adminEmail, setAdminEmail] = useState('');
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] =
     useState<Order | null>(null);
+  const [selectedOrderDetails, setSelectedOrderDetails] =
+    useState<Order | null>(null);
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null);
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
+
+  // 👇 Tab state: "recent" (last 24 hours) or "history" (older than 24 hours)
+  const [activeTab, setActiveTab] = useState<'recent' | 'history'>('recent');
+
+  const isWithinLast24Hours = (dateString: string) => {
+    const orderDate = new Date(dateString);
+    const now = new Date();
+    const diffInHours =
+      (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+    return diffInHours <= 24;
+  };
 
   const stats = useMemo(() => {
     const completedOrders = orders.filter(
@@ -97,6 +110,19 @@ export default function AdminOrdersPage() {
       ),
     };
   }, [orders]);
+
+  // 👇 Split orders into Recent (last 24hr) and History (older)
+  const recentOrders = useMemo(
+    () => orders.filter((order) => isWithinLast24Hours(order.created_at)),
+    [orders]
+  );
+
+  const historyOrders = useMemo(
+    () => orders.filter((order) => !isWithinLast24Hours(order.created_at)),
+    [orders]
+  );
+
+  const displayedOrders = activeTab === 'recent' ? recentOrders : historyOrders;
 
   const handleLogout = async () => {
     if (supabase) {
@@ -494,15 +520,45 @@ export default function AdminOrdersPage() {
           </div>
 
           <div className="bg-white border border-neutral-200 shadow-sm rounded-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-neutral-100 bg-white">
-              <h2 className="font-serif text-xl font-bold text-neutral-900">
-                Recent Orders
-              </h2>
-              <p className="text-sm text-neutral-500">
-                Live customer orders with real dish images, table number,
-                status and invoice action.
-              </p>
-            </div>
+            <div className="px-5 py-4 border-b border-neutral-100 bg-white flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* update is add button for history and recent orders */}
+  <div>
+    <h2 className="font-serif text-xl font-bold text-neutral-900">
+      Orders
+    </h2>
+    <p className="text-sm text-neutral-500">
+      Live customer orders with real dish images, table number,
+      status and invoice action.
+    </p>
+  </div>
+
+  {/*  Recent / History Tabs - right side, golden theme */}
+  <div className="flex items-center gap-2 shrink-0">
+    <button
+      type="button"
+      onClick={() => setActiveTab('recent')}
+      className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
+        activeTab === 'recent'
+          ? 'bg-[#C5A059] text-white'
+          : 'bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]'
+      }`}
+    >
+      Recent Orders ({recentOrders.length})
+    </button>
+
+    <button
+      type="button"
+      onClick={() => setActiveTab('history')}
+      className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
+        activeTab === 'history'
+          ? 'bg-[#C5A059] text-white'
+          : 'bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]'
+      }`}
+    >
+      History ({historyOrders.length})
+    </button>
+  </div>
+</div>
 
             {loading ? (
               <div className="flex flex-col items-center justify-center py-28 bg-white">
@@ -519,16 +575,20 @@ export default function AdminOrdersPage() {
                   Please wait while we retrieve customer orders...
                 </p>
               </div>
-            ) : orders.length === 0 ? (
+            ) : displayedOrders.length === 0 ? (
               <div className="p-12 text-center">
                 <ShoppingBag className="w-12 h-12 mx-auto text-neutral-300 mb-3" />
 
                 <h2 className="font-serif text-xl font-bold text-neutral-900">
-                  No Orders Received Yet
+                  {activeTab === 'recent'
+                    ? 'No Recent Orders'
+                    : 'No Order History'}
                 </h2>
 
                 <p className="text-sm text-neutral-500 mt-1">
-                  Customer orders will appear here automatically.
+                  {activeTab === 'recent'
+                    ? 'No orders in the last 24 hours.'
+                    : 'No past order history found.'}
                 </p>
               </div>
             ) : (
@@ -558,11 +618,15 @@ export default function AdminOrdersPage() {
                   </thead>
 
                   <tbody className="divide-y divide-neutral-100">
-                    {orders.map((order) => {
+                    {displayedOrders.map((order) => {
                       const StatusIcon = getStatusIcon(order.status);
 
                       return (
-                        <tr key={order.id} className="hover:bg-neutral-50">
+                        <tr
+                          key={order.id}
+                          onClick={() => setSelectedOrderDetails(order)}
+                          className="hover:bg-[#C5A059]/[0.06] cursor-pointer transition-colors"
+                        >
                           <td className="px-4 py-5 align-top break-words">
                             <p className="font-bold text-neutral-900 break-words">
                               {order.customer_name}
@@ -654,7 +718,10 @@ export default function AdminOrdersPage() {
                             </p>
                           </td>
 
-                          <td className="px-4 py-5 align-top">
+                          <td
+                            className="px-4 py-5 align-top"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <span
                               className={`inline-flex items-center gap-1.5 mb-3 px-3 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(
                                 order.status
@@ -693,7 +760,10 @@ export default function AdminOrdersPage() {
                             </p>
                           </td>
 
-                          <td className="px-4 py-5 align-top">
+                          <td
+                            className="px-4 py-5 align-top"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <div className="flex flex-col items-end gap-2">
                               <button
                                 onClick={() => setSelectedInvoiceOrder(order)}
@@ -730,6 +800,181 @@ export default function AdminOrdersPage() {
           order={selectedInvoiceOrder}
           onClose={() => setSelectedInvoiceOrder(null)}
         />
+      )}
+
+      {selectedOrderDetails && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden"
+          onClick={() => setSelectedOrderDetails(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex w-full max-w-lg max-h-[85vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-[#C5A059]/30"
+          >
+            
+            <div className="flex shrink-0 items-center justify-between bg-gradient-to-br from-neutral-950 to-neutral-900 px-6 py-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-950">
+                  <img
+                    src="/logo/logo.png"
+                    alt="Grand Emaar Logo"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C5A059]">
+                    Grand Emaar
+                  </p>
+                  <h2 className="mt-0.5 font-serif text-lg font-bold text-white">
+                    Order Details
+                  </h2>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOrderDetails(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(
+                    selectedOrderDetails.status
+                  )}`}
+                >
+                  {(() => {
+                    const DetailStatusIcon = getStatusIcon(
+                      selectedOrderDetails.status
+                    );
+                    return <DetailStatusIcon className="w-3 h-3" />;
+                  })()}
+                  {selectedOrderDetails.status}
+                </span>
+
+                <span className="bg-neutral-100 px-2 py-1 text-[10px] text-neutral-500 font-mono rounded-sm">
+                  #{selectedOrderDetails.id.slice(0, 8).toUpperCase()}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+                  <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                    Customer
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-neutral-900">
+                    {selectedOrderDetails.customer_name}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+                  <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                    Phone
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-700">
+                    <Phone className="w-3.5 h-3.5 text-[#C5A059]" />
+                    {selectedOrderDetails.phone}
+                  </p>
+                </div>
+
+                {selectedOrderDetails.address && (
+                  <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+                    <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                      Table No
+                    </p>
+                    <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-700">
+                      <Table2 className="w-3.5 h-3.5 text-[#C5A059]" />
+                      {selectedOrderDetails.address}
+                    </p>
+                  </div>
+                )}
+
+                <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+                  <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                    Date & Time
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-700">
+                    <CalendarDays className="w-3.5 h-3.5 text-[#C5A059]" />
+                    {new Date(
+                      selectedOrderDetails.created_at
+                    ).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                  <ChefHat className="w-3.5 h-3.5 text-[#C5A059]" />
+                  Order Items
+                </p>
+
+                <div className="space-y-2">
+                  {selectedOrderDetails.items?.map((item, index) => (
+                    <div
+                      key={`${item.name}-${index}`}
+                      className="flex items-center gap-3 bg-neutral-50 border border-neutral-100 px-3 py-2.5 rounded-lg transition-colors hover:border-[#C5A059]/30"
+                    >
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-neutral-200 shrink-0 ring-1 ring-neutral-200">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                            onError={(event) => {
+                              event.currentTarget.onerror = null;
+                              event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
+                                item.name
+                              )}/100/100`;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400">
+                            <ImageIcon className="w-5 h-5" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-neutral-800 break-words">
+                          {item.name}
+                        </p>
+                        <p className="text-[11px] text-neutral-500">
+                          Qty: {item.quantity}
+                        </p>
+                      </div>
+
+                      <p className="text-sm font-semibold text-neutral-700 whitespace-nowrap">
+                        Rs. {Number(item.price).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {selectedOrderDetails.notes && (
+                <div className="bg-[#C5A059]/10 text-[#8A6A2F] border border-[#C5A059]/20 p-3 rounded-lg text-sm">
+                  <span className="font-bold">Note: </span>
+                  {selectedOrderDetails.notes}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between rounded-lg bg-gradient-to-r from-neutral-950 to-neutral-900 px-4 py-3.5">
+                <p className="text-xs uppercase tracking-widest text-[#C5A059] font-bold">
+                  Total Amount
+                </p>
+                <p className="text-xl font-bold text-white">
+                  Rs. {Number(selectedOrderDetails.total_amount).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

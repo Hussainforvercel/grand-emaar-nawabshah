@@ -46,14 +46,14 @@ export default function AdminInvoiceModal({
       />
 
       <div className="relative bg-white w-full max-w-3xl max-h-[92vh] rounded-sm shadow-2xl flex flex-col overflow-hidden print:max-h-none print:shadow-none print:max-w-none print:w-full">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 print:hidden">
+        <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-br from-neutral-950 to-neutral-900 print:hidden">
           <div className="flex items-center gap-3">
             <Image
               src="/logo/logo.png"
               alt="Grand Emaar Logo"
               width={44}
               height={44}
-              className="object-contain"
+              className="rounded-full object-contain"
               priority
             />
 
@@ -61,7 +61,7 @@ export default function AdminInvoiceModal({
               <p className="text-[10px] uppercase tracking-[0.25em] text-[#C5A059] font-bold">
                 Grand Emaar
               </p>
-              <h2 className="font-serif text-lg font-bold text-neutral-900">
+              <h2 className="font-serif text-lg font-bold text-white">
                 Customer Invoice
               </h2>
             </div>
@@ -70,7 +70,7 @@ export default function AdminInvoiceModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 border border-neutral-200 inline-flex items-center justify-center rounded-sm hover:bg-neutral-100"
+            className="w-9 h-9 inline-flex items-center justify-center rounded-full text-neutral-400 hover:bg-white/10 hover:text-white transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
