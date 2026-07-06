@@ -19,7 +19,6 @@ import {
   ChefHat,
   XCircle,
   ChevronDown,
-  ImageIcon,
 } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminInvoiceModal from '@/components/admin/AdminInvoiceModal';
@@ -43,11 +42,6 @@ interface Order {
   created_at: string;
 }
 
-interface MenuImageItem {
-  name: string;
-  image_url: string | null;
-}
-
 const statusOptions = [
   'pending',
   'confirmed',
@@ -63,8 +57,6 @@ const statusIcons: Record<string, React.ElementType> = {
   completed: CheckCircle2,
   cancelled: XCircle,
 };
-
-const normalizeName = (name: string) => name.trim().toLowerCase();
 
 export default function AdminOrdersPage() {
   const router = useRouter();
@@ -101,30 +93,6 @@ export default function AdminOrdersPage() {
     router.push('/admin-login');
   };
 
-  const attachRealDishImages = (
-    ordersData: Order[],
-    menuItemsData: MenuImageItem[]
-  ) => {
-    const imageMap = new Map<string, string>();
-
-    menuItemsData.forEach((menuItem) => {
-      if (menuItem.name && menuItem.image_url) {
-        imageMap.set(normalizeName(menuItem.name), menuItem.image_url);
-      }
-    });
-
-    return ordersData.map((order) => ({
-      ...order,
-      items: order.items.map((item) => ({
-        ...item,
-        image_url:
-          item.image_url ||
-          imageMap.get(normalizeName(item.name)) ||
-          null,
-      })),
-    }));
-  };
-
   const fetchOrders = async () => {
     if (!isSupabaseConfigured || !supabase) {
       setOrders([]);
@@ -134,22 +102,13 @@ export default function AdminOrdersPage() {
 
     setLoading(true);
 
-    const [{ data: ordersData, error: ordersError }, { data: menuItemsData }] =
-      await Promise.all([
-        supabase
-          .from('orders')
-          .select('*')
-          .order('created_at', { ascending: false }),
-        supabase.from('menu_items').select('name, image_url'),
-      ]);
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-    if (!ordersError && ordersData) {
-      const ordersWithRealImages = attachRealDishImages(
-        ordersData as Order[],
-        (menuItemsData || []) as MenuImageItem[]
-      );
-
-      setOrders(ordersWithRealImages);
+    if (!error && data) {
+      setOrders(data as Order[]);
     }
 
     setLoading(false);
@@ -314,8 +273,8 @@ export default function AdminOrdersPage() {
                 Recent Orders
               </h2>
               <p className="text-sm text-neutral-500">
-                Customer order list with real dish images, table number, status
-                and invoice action.
+                Customer order list with items, table number, status and invoice
+                action.
               </p>
             </div>
 
@@ -386,9 +345,7 @@ export default function AdminOrdersPage() {
                             <div className="mt-2 space-y-1.5">
                               <p className="flex items-center gap-2 text-xs text-neutral-600">
                                 <Phone className="w-3.5 h-3.5 text-[#C5A059] shrink-0" />
-                                <span className="break-words">
-                                  {order.phone}
-                                </span>
+                                <span className="break-words">{order.phone}</span>
                               </p>
 
                               {order.address && (
@@ -413,26 +370,28 @@ export default function AdminOrdersPage() {
                             <div className="space-y-2">
                               {order.items?.map((item, index) => (
                                 <div
-                                  key={`${item.name}-${index}`}
+                                  key={index}
                                   className="flex items-center gap-2 bg-neutral-50 border border-neutral-100 px-2 py-2 rounded-sm"
                                 >
-                                  <div className="relative w-11 h-11 rounded-sm overflow-hidden bg-neutral-200 shrink-0">
-                                    {item.image_url ? (
-                                      <img
-                                        src={item.image_url}
-                                        alt={item.name}
-                                        referrerPolicy="no-referrer"
-                                        className="w-full h-full object-cover"
-                                        onError={(event) => {
-                                          event.currentTarget.style.display =
-                                            'none';
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400">
-                                        <ImageIcon className="w-5 h-5" />
-                                      </div>
-                                    )}
+                                  <div className="relative w-9 h-9 rounded-sm overflow-hidden bg-neutral-200 shrink-0">
+                                    <img
+                                      src={
+                                        item.image_url ||
+                                        `https://picsum.photos/seed/${encodeURIComponent(
+                                          item.name
+                                        )}/100/100`
+                                      }
+                                      alt={item.name}
+                                      referrerPolicy="no-referrer"
+                                      className="w-full h-full object-cover"
+                                      onError={(event) => {
+                                        
+                                        event.currentTarget.onerror = null;
+                                        event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
+                                          item.name
+                                        )}/100/100`;
+                                      }}
+                                    />
                                   </div>
 
                                   <div className="flex-1 min-w-0">
