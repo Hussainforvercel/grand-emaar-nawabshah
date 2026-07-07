@@ -639,9 +639,9 @@ export default function AdminCategoriesManager({
                         {category.name}
                       </h4>
 
-                      <p className="mt-2 text-xs text-neutral-500">
+                      {/* <p className="mt-2 text-xs text-neutral-500">
                         {dishCount} dishes assigned
-                      </p>
+                      </p> */}
 
                       <div className="mt-4 flex items-center gap-2">
                         <button
