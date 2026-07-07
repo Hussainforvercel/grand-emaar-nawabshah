@@ -276,10 +276,9 @@ export default function AdminOrdersPage() {
         ).toLocaleString()} - Table No: ${order.address || 'N/A'}`,
       });
     }
-
-    setTimeout(() => {
-      setNewOrderAlert(null);
-    }, 6000);
+    //  No auto-dismiss timeout anymore — the popup now shows full order
+    //  details as a centered modal, so the admin closes it manually
+    //  (via "Got It", the X button, or clicking outside) after reading it.
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
@@ -455,20 +454,135 @@ export default function AdminOrdersPage() {
       )}
 
       {newOrderAlert && (
-        <div className="fixed top-5 right-5 z-[9999] bg-neutral-900 text-white border border-[#C5A059]/40 shadow-2xl px-5 py-4 rounded-sm max-w-sm print:hidden">
-          <div className="flex items-start gap-3">
-            <BellRing className="w-5 h-5 text-[#C5A059] shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#C5A059]">
-                New Order Received
-              </p>
-              <p className="mt-1 text-sm font-semibold">
-                {newOrderAlert.customer_name}
-              </p>
-              <p className="text-xs text-neutral-300">
-                Rs. {Number(newOrderAlert.total_amount).toLocaleString()} •
-                Table No: {newOrderAlert.address || 'N/A'}
-              </p>
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden"
+          onClick={() => setNewOrderAlert(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-[#C5A059]/30 animate-[pulse_1.4s_ease-in-out_1]"
+          >
+            <div className="flex items-center justify-between gap-4 bg-gradient-to-br from-neutral-950 to-neutral-900 px-6 py-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#C5A059]/15">
+                  <BellRing className="w-5 h-5 text-[#C5A059]" />
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C5A059]">
+                    New Order Received
+                  </p>
+                  <h2 className="mt-0.5 font-serif text-lg font-bold text-white">
+                    {newOrderAlert.customer_name}
+                  </h2>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setNewOrderAlert(null)}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+                  <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                    Phone
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-neutral-800">
+                    <Phone className="w-3.5 h-3.5 text-[#C5A059]" />
+                    {newOrderAlert.phone}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+                  <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                    Table No
+                  </p>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-neutral-800">
+                    <Table2 className="w-3.5 h-3.5 text-[#C5A059]" />
+                    {newOrderAlert.address || 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                  <ChefHat className="w-3.5 h-3.5 text-[#C5A059]" />
+                  Order Items
+                </p>
+
+                <div className="space-y-2">
+                  {newOrderAlert.items?.map((item, index) => (
+                    <div
+                      key={`${item.name}-${index}`}
+                      className="flex items-center gap-3 bg-neutral-50 border border-neutral-100 px-3 py-2.5 rounded-lg"
+                    >
+                      <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-neutral-200 shrink-0 ring-1 ring-neutral-200">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                            onError={(event) => {
+                              event.currentTarget.onerror = null;
+                              event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
+                                item.name
+                              )}/100/100`;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400">
+                            <ImageIcon className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-neutral-800 break-words">
+                          {item.name}
+                        </p>
+                        <p className="text-[11px] text-neutral-500">
+                          Qty: {item.quantity}
+                        </p>
+                      </div>
+
+                      <p className="text-sm font-semibold text-neutral-700 whitespace-nowrap">
+                        Rs. {Number(item.price).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {newOrderAlert.notes && (
+                <div className="bg-[#C5A059]/10 text-[#8A6A2F] border border-[#C5A059]/20 p-3 rounded-lg text-sm">
+                  <span className="font-bold">Note: </span>
+                  {newOrderAlert.notes}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between rounded-lg bg-gradient-to-r from-neutral-950 to-neutral-900 px-4 py-3.5">
+                <p className="text-xs uppercase tracking-widest text-[#C5A059] font-bold">
+                  Total Amount
+                </p>
+                <p className="text-xl font-bold text-white">
+                  Rs. {Number(newOrderAlert.total_amount).toLocaleString()}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setNewOrderAlert(null)}
+                className="w-full rounded-sm bg-[#C5A059] hover:bg-[#A98443] text-white text-xs font-bold uppercase tracking-widest py-3 transition-colors"
+              >
+                Got It
+              </button>
             </div>
           </div>
         </div>
