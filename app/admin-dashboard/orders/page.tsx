@@ -21,6 +21,8 @@ import {
   ChevronDown,
   ImageIcon,
   BellRing,
+  Search,
+  X,
 } from 'lucide-react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminInvoiceModal from '@/components/admin/AdminInvoiceModal';
@@ -83,8 +85,11 @@ export default function AdminOrdersPage() {
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null);
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
 
-  // 👇 Tab state: "recent" (last 24 hours) or "history" (older than 24 hours)
+  //  Tab state: "recent" (last 24 hours) or "history" (older than 24 hours)
   const [activeTab, setActiveTab] = useState<'recent' | 'history'>('recent');
+
+  //  Search state: works across both Recent and History tabs
+  const [searchQuery, setSearchQuery] = useState('');
 
   const isWithinLast24Hours = (dateString: string) => {
     const orderDate = new Date(dateString);
@@ -111,18 +116,48 @@ export default function AdminOrdersPage() {
     };
   }, [orders]);
 
-  // 👇 Split orders into Recent (last 24hr) and History (older)
+  //  Split orders into Recent (last 24hr AND not completed) and History
+  //  (older than 24hr OR already completed - completed orders move to
+  //  history immediately regardless of how recently they were placed)
   const recentOrders = useMemo(
-    () => orders.filter((order) => isWithinLast24Hours(order.created_at)),
+    () =>
+      orders.filter(
+        (order) =>
+          isWithinLast24Hours(order.created_at) &&
+          order.status !== 'completed'
+      ),
     [orders]
   );
 
   const historyOrders = useMemo(
-    () => orders.filter((order) => !isWithinLast24Hours(order.created_at)),
+    () =>
+      orders.filter(
+        (order) =>
+          !isWithinLast24Hours(order.created_at) ||
+          order.status === 'completed'
+      ),
     [orders]
   );
 
-  const displayedOrders = activeTab === 'recent' ? recentOrders : historyOrders;
+  const baseOrders = activeTab === 'recent' ? recentOrders : historyOrders;
+
+  //  Search filters on top of whichever tab is active
+  const displayedOrders = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return baseOrders;
+
+    return baseOrders.filter((order) => {
+      const idMatch = order.id.toLowerCase().includes(q);
+      const nameMatch = order.customer_name.toLowerCase().includes(q);
+      const phoneMatch = order.phone.toLowerCase().includes(q);
+      const tableMatch = (order.address || '').toLowerCase().includes(q);
+      const itemMatch = order.items?.some((item) =>
+        item.name.toLowerCase().includes(q)
+      );
+
+      return idMatch || nameMatch || phoneMatch || tableMatch || itemMatch;
+    });
+  }, [baseOrders, searchQuery]);
 
   const handleLogout = async () => {
     if (supabase) {
@@ -317,6 +352,11 @@ export default function AdminOrdersPage() {
       Notification.requestPermission();
     }
   }, []);
+
+  //  Reset search when switching tabs so old queries don't confuse the next tab
+  useEffect(() => {
+    setSearchQuery('');
+  }, [activeTab]);
 
   useEffect(() => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -521,44 +561,83 @@ export default function AdminOrdersPage() {
 
           <div className="bg-white border border-neutral-200 shadow-sm rounded-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-neutral-100 bg-white flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              {/* update is add button for history and recent orders */}
-  <div>
-    <h2 className="font-serif text-xl font-bold text-neutral-900">
-      Orders
-    </h2>
-    <p className="text-sm text-neutral-500">
-      Live customer orders with real dish images, table number,
-      status and invoice action.
-    </p>
-  </div>
+              <div>
+                <h2 className="font-serif text-xl font-bold text-neutral-900">
+                  Orders
+                </h2>
+                <p className="text-sm text-neutral-500">
+                  Live customer orders with real dish images, table number,
+                  status and invoice action.
+                </p>
+              </div>
 
-  {/*  Recent / History Tabs - right side, golden theme */}
-  <div className="flex items-center gap-2 shrink-0">
-    <button
-      type="button"
-      onClick={() => setActiveTab('recent')}
-      className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
-        activeTab === 'recent'
-          ? 'bg-[#C5A059] text-white'
-          : 'bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]'
-      }`}
-    >
-      Recent Orders ({recentOrders.length})
-    </button>
+              {/*  Recent / History Tabs - right side, golden theme */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('recent')}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
+                    activeTab === 'recent'
+                      ? 'bg-[#C5A059] text-white'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]'
+                  }`}
+                >
+                  Recent Orders
+                </button>
 
-    <button
-      type="button"
-      onClick={() => setActiveTab('history')}
-      className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
-        activeTab === 'history'
-          ? 'bg-[#C5A059] text-white'
-          : 'bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]'
-      }`}
-    >
-      History ({historyOrders.length})
-    </button>
-  </div>
-</div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('history')}
+                  className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
+                    activeTab === 'history'
+                      ? 'bg-[#C5A059] text-white'
+                      : 'bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]'
+                  }`}
+                >
+                  History
+                </button>
+              </div>
+            </div>
+
+            {/*  Search bar - centered, works for whichever tab (Recent/History) is active */}
+            <div className="px-5 py-4 border-b border-neutral-100 bg-neutral-50/60">
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative w-full max-w-lg">
+                  <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={`Search ${
+                      activeTab === 'recent' ? 'recent orders' : 'history'
+                    } by name, phone, table or item...`}
+                    className="w-full border border-neutral-200 bg-white pl-10 pr-9 py-2.5 rounded-sm text-sm text-neutral-800 placeholder:text-neutral-400 outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/15 transition-all text-center placeholder:text-center"
+                  />
+
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {searchQuery && (
+                  <p className="text-xs text-neutral-500">
+                    Found{' '}
+                    <span className="font-bold text-neutral-800">
+                      {displayedOrders.length}
+                    </span>{' '}
+                    of {baseOrders.length}{' '}
+                    {activeTab === 'recent' ? 'recent' : 'history'} orders
+                  </p>
+                )}
+              </div>
+            </div>
 
             {loading ? (
               <div className="flex flex-col items-center justify-center py-28 bg-white">
@@ -580,16 +659,33 @@ export default function AdminOrdersPage() {
                 <ShoppingBag className="w-12 h-12 mx-auto text-neutral-300 mb-3" />
 
                 <h2 className="font-serif text-xl font-bold text-neutral-900">
-                  {activeTab === 'recent'
+                  {searchQuery
+                    ? 'No Matching Orders'
+                    : activeTab === 'recent'
                     ? 'No Recent Orders'
                     : 'No Order History'}
                 </h2>
 
                 <p className="text-sm text-neutral-500 mt-1">
-                  {activeTab === 'recent'
+                  {searchQuery
+                    ? `No orders match "${searchQuery}" in ${
+                        activeTab === 'recent' ? 'recent orders' : 'history'
+                      }.`
+                    : activeTab === 'recent'
                     ? 'No orders in the last 24 hours.'
                     : 'No past order history found.'}
                 </p>
+
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[#A98443] hover:text-[#C5A059]"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Clear Search
+                  </button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
