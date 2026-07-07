@@ -117,8 +117,7 @@ export default function AdminCategoriesPage() {
             </h1>
 
             <p className="mt-2 text-sm text-neutral-500 max-w-2xl">
-              Yahan se aap restaurant menu ki categories add, update aur delete
-              kar sakte hain. Dishes section ab sirf food items ke liye hai.
+              Manage your restaurant menu categories with ease. Add, edit, or remove categories
             </p>
           </div>
 

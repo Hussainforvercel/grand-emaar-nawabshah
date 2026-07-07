@@ -84,7 +84,7 @@ export default function AdminOrdersPage() {
     useState<Order | null>(null);
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null);
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
-
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null); 
   //  Tab state: "recent" (last 24 hours) or "history" (older than 24 hours)
   const [activeTab, setActiveTab] = useState<'recent' | 'history'>('recent');
 
@@ -299,18 +299,16 @@ export default function AdminOrdersPage() {
   };
 
   const deleteOrder = async (orderId: string) => {
-    const confirmDelete = window.confirm(
-      'Are you sure you want to delete this order?'
-    );
+  if (!supabase) return;
 
-    if (!confirmDelete || !supabase) return;
+  const { error } = await supabase.from('orders').delete().eq('id', orderId);
 
-    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+  if (!error) {
+    setOrders((prev) => prev.filter((order) => order.id !== orderId));
+  }
 
-    if (!error) {
-      setOrders((prev) => prev.filter((order) => order.id !== orderId));
-    }
-  };
+  setOrderToDelete(null);
+};
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
@@ -985,13 +983,13 @@ export default function AdminOrdersPage() {
                               </button>
 
                               <button
-                                onClick={() => deleteOrder(order.id)}
-                                type="button"
-                                className="inline-flex w-full items-center justify-center gap-2 px-3 h-9 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-sm transition-colors text-[10px] font-bold uppercase tracking-widest"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Delete
-                              </button>
+  onClick={() => setOrderToDelete(order)}
+  type="button"
+  className="inline-flex w-full items-center justify-center gap-2 px-3 h-9 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-sm transition-colors text-[10px] font-bold uppercase tracking-widest"
+>
+  <Trash2 className="w-4 h-4" />
+  Delete
+</button>
                             </div>
                           </td>
                         </tr>
@@ -1186,6 +1184,53 @@ export default function AdminOrdersPage() {
           </div>
         </div>
       )}
+      {orderToDelete && (
+  <div
+    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden"
+    onClick={() => setOrderToDelete(null)}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-[#C5A059]/30"
+    >
+      <div className="flex flex-col items-center px-6 pt-8 pb-6 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+          <Trash2 className="w-6 h-6 text-red-600" />
+        </div>
+
+        <h2 className="mt-4 font-serif text-lg font-bold text-neutral-900">
+          Delete This Order?
+        </h2>
+
+        <p className="mt-2 text-sm text-neutral-500">
+          Are you sure you want to delete{' '}
+          <span className="font-semibold text-neutral-800">
+            {orderToDelete.customer_name}
+          </span>
+          's order? This action cannot be undone.
+        </p>
+
+        <div className="mt-6 flex w-full gap-3">
+          <button
+            type="button"
+            onClick={() => setOrderToDelete(null)}
+            className="flex-1 rounded-sm border border-neutral-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-neutral-600 transition-colors hover:bg-neutral-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={() => deleteOrder(orderToDelete.id)}
+            className="flex-1 rounded-sm bg-red-600 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }
