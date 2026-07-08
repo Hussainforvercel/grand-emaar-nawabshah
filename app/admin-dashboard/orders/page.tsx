@@ -83,8 +83,13 @@ export default function AdminOrdersPage() {
   const [selectedOrderDetails, setSelectedOrderDetails] =
     useState<Order | null>(null);
   const [newOrderAlert, setNewOrderAlert] = useState<Order | null>(null);
-  const [isSoundEnabled, setIsSoundEnabled] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null); 
+
+  // Queue for incoming orders: if a new-order popup is already open and another
+  // order arrives, we no longer overwrite/lose it — it goes into this queue and
+  // is shown automatically right after the admin closes the current popup.
+  const [orderAlertQueue, setOrderAlertQueue] = useState<Order[]>([]);
+
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   //  Tab state: "recent" (last 24 hours) or "history" (older than 24 hours)
   const [activeTab, setActiveTab] = useState<'recent' | 'history'>('recent');
 
@@ -101,7 +106,8 @@ export default function AdminOrdersPage() {
 
   const stats = useMemo(() => {
     const completedOrders = orders.filter(
-      (order) => order.status === 'completed'
+      (order) => 
+        order.status === 'completed'
     );
 
     return {
@@ -116,15 +122,17 @@ export default function AdminOrdersPage() {
     };
   }, [orders]);
 
-  //  Split orders into Recent (last 24hr AND not completed) and History
-  //  (older than 24hr OR already completed - completed orders move to
-  //  history immediately regardless of how recently they were placed)
+  //  Split orders into Recent (last 24hr AND not completed/cancelled) and
+  //  History (older than 24hr OR already completed OR cancelled).
+  //  NOTE: Cancelled orders move to History immediately, exactly like
+  //  Completed orders — this was already working, kept as-is on purpose.
   const recentOrders = useMemo(
     () =>
       orders.filter(
         (order) =>
           isWithinLast24Hours(order.created_at) &&
-          order.status !== 'completed'
+          order.status !== 'completed' &&
+          order.status !== 'cancelled'
       ),
     [orders]
   );
@@ -134,7 +142,8 @@ export default function AdminOrdersPage() {
       orders.filter(
         (order) =>
           !isWithinLast24Hours(order.created_at) ||
-          order.status === 'completed'
+          order.status === 'completed' ||
+          order.status === 'cancelled'
       ),
     [orders]
   );
@@ -168,28 +177,19 @@ export default function AdminOrdersPage() {
     router.push('/admin-login');
   };
 
-  const enableOrderSound = async () => {
+  // Plays the bell sound for every new order, automatically.
+  // Browsers block audio autoplay until the page has received at least one
+  // user interaction (click/keypress) — see the "unlock" effect below, which
+  // silently primes the audio in the background with no visible button.
+  const playOrderBell = async () => {
     try {
       if (!orderBellAudioRef.current) return;
 
+      orderBellAudioRef.current.currentTime = 0;
       orderBellAudioRef.current.volume = 0.9;
       await orderBellAudioRef.current.play();
-      orderBellAudioRef.current.pause();
-      orderBellAudioRef.current.currentTime = 0;
-
-      setIsSoundEnabled(true);
-    } catch {
-      setIsSoundEnabled(false);
-    }
-  };
-
-  const playOrderBell = async () => {
-    try {
-      if (!orderBellAudioRef.current || !isSoundEnabled) return;
-
-      orderBellAudioRef.current.currentTime = 0;
-      await orderBellAudioRef.current.play();
     } catch (error) {
+      // Will only happen if the admin hasn't interacted with the page at all yet
       console.log('Order bell sound blocked by browser:', error);
     }
   };
@@ -265,8 +265,13 @@ export default function AdminOrdersPage() {
     return attachRealDishImages([data as Order], menuItems)[0];
   };
 
+  // Handles a freshly inserted order in real time:
+  // 1. Bell always rings immediately, regardless of whether a popup is showing.
+  // 2. Desktop notification always fires.
+  // 3. Popup: if none is open, show this order now. If one IS already open,
+  //    push this order into the queue instead of replacing the visible one —
+  //    it will automatically be shown next once the admin closes the current popup.
   const showNewOrderNotification = (order: Order) => {
-    setNewOrderAlert(order);
     playOrderBell();
 
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -276,9 +281,29 @@ export default function AdminOrdersPage() {
         ).toLocaleString()} - Table No: ${order.address || 'N/A'}`,
       });
     }
-    //  No auto-dismiss timeout anymore — the popup now shows full order
-    //  details as a centered modal, so the admin closes it manually
-    //  (via "Got It", the X button, or clicking outside) after reading it.
+
+    setNewOrderAlert((current) => {
+      if (current) {
+        setOrderAlertQueue((queue) => [...queue, order]);
+        return current;
+      }
+      return order;
+    });
+  };
+
+  // Closes the currently visible new-order popup and, if there are more
+  // orders waiting in the queue, immediately shows the next one.
+  const closeNewOrderAlert = () => {
+    setOrderAlertQueue((queue) => {
+      if (queue.length > 0) {
+        const [nextOrder, ...remaining] = queue;
+        setNewOrderAlert(nextOrder);
+        return remaining;
+      }
+
+      setNewOrderAlert(null);
+      return queue;
+    });
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
@@ -348,6 +373,38 @@ export default function AdminOrdersPage() {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+  }, []);
+
+  // Silently "unlocks" audio autoplay in the background — no visible button.
+  // Browsers require at least one user interaction (click/keypress anywhere
+  // on the page) before allowing audio.play() to work. This listens for the
+  // very first click/keypress on the page, quietly plays+pauses the bell
+  // once to unlock it, then removes itself. After that, every new order
+  // will ring the bell automatically without any admin action.
+  useEffect(() => {
+    const unlockAudio = () => {
+      const audio = orderBellAudioRef.current;
+
+      if (audio) {
+        audio
+          .play()
+          .then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+          })
+          .catch(() => {
+            // Ignore — will simply retry unlocking on the next interaction
+          });
+      }
+    };
+
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('keydown', unlockAudio);
+    };
   }, []);
 
   //  Reset search when switching tabs so old queries don't confuse the next tab
@@ -430,7 +487,7 @@ export default function AdminOrdersPage() {
     return () => {
       supabase?.removeChannel(channel);
     };
-  }, [menuItems, isSoundEnabled]);
+  }, [menuItems]);
 
   return (
     <>
@@ -440,21 +497,10 @@ export default function AdminOrdersPage() {
         preload="auto"
       />
 
-      {!isSoundEnabled && (
-        <button
-          onClick={enableOrderSound}
-          type="button"
-          className="fixed bottom-5 right-5 z-[9999] inline-flex items-center gap-2 bg-[#C5A059] text-white px-4 py-3 rounded-sm shadow-xl text-xs font-bold uppercase tracking-widest print:hidden"
-        >
-          <BellRing className="w-4 h-4" />
-          Enable Order Bell
-        </button>
-      )}
-
       {newOrderAlert && (
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden"
-          onClick={() => setNewOrderAlert(null)}
+          onClick={closeNewOrderAlert}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -469,6 +515,11 @@ export default function AdminOrdersPage() {
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#C5A059]">
                     New Order Received
+                    {orderAlertQueue.length > 0 && (
+                      <span className="ml-2 text-white/70">
+                        (+{orderAlertQueue.length} more waiting)
+                      </span>
+                    )}
                   </p>
                   <h2 className="mt-0.5 font-serif text-lg font-bold text-white">
                     {newOrderAlert.customer_name}
@@ -478,7 +529,7 @@ export default function AdminOrdersPage() {
 
               <button
                 type="button"
-                onClick={() => setNewOrderAlert(null)}
+                onClick={closeNewOrderAlert}
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <XCircle className="w-5 h-5" />
@@ -576,10 +627,10 @@ export default function AdminOrdersPage() {
 
               <button
                 type="button"
-                onClick={() => setNewOrderAlert(null)}
+                onClick={closeNewOrderAlert}
                 className="w-full rounded-sm bg-[#C5A059] hover:bg-[#A98443] text-white text-xs font-bold uppercase tracking-widest py-3 transition-colors"
               >
-                Got It
+                {orderAlertQueue.length > 0 ? 'Got It — Next Order' : 'Got It'}
               </button>
             </div>
           </div>
