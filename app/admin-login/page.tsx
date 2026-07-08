@@ -19,14 +19,14 @@ export default function AdminLoginPage() {
     if (isSupabaseConfigured && supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
-          router.replace('/admin-dashboard');
+          router.replace('/admin-dashboard/orders');
         }
       });
     } else {
       // In offline/demo mode, check if we have our mock session token
       const offlineSession = localStorage.getItem('grand_emaar_demo_session');
       if (offlineSession) {
-        router.replace('/admin-dashboard');
+        router.replace('/admin-dashboard/orders');
       }
     }
   }, [router]);
@@ -48,11 +48,11 @@ export default function AdminLoginPage() {
       setTimeout(() => {
         if (email.trim().toLowerCase() === 'admin@grandemaar.com' && password === 'admin123') {
           localStorage.setItem('grand_emaar_demo_session', JSON.stringify({ email, token: 'mock_jwt_token_grand_emaar' }));
-          router.replace('/admin-dashboard');
+          router.replace('/admin-dashboard/orders');
         } else if (email && password.length >= 6) {
           // Allow any 6-character password in demo mode to be super accommodating.
           localStorage.setItem('grand_emaar_demo_session', JSON.stringify({ email, token: 'mock_jwt_token' }));
-          router.replace('/admin-dashboard');
+          router.replace('/admin-dashboard/orders');
         } else {
           setError('Invalid login credentials in Demo Mode. (Recommended: admin@grandemaar.com / admin123)');
         }
@@ -72,7 +72,7 @@ export default function AdminLoginPage() {
       }
 
       if (data.session) {
-        router.replace('/admin-dashboard');
+        router.replace('/admin-dashboard/orders');
       } else {
         setError('No active administrative session. Contact developer.');
       }

@@ -1,8 +1,8 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+"use client";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
   LogOut,
@@ -11,8 +11,8 @@ import {
   X,
   ShoppingBag,
   Tags,
-} from 'lucide-react';
-import Image from 'next/image';
+} from "lucide-react";
+import Image from "next/image";
 
 interface AdminSidebarProps {
   onLogout: () => void;
@@ -36,40 +36,40 @@ export default function AdminSidebar({
   };
 
   useEffect(() => {
-    document.body.style.overflow = isLogoutPopupOpen ? 'hidden' : '';
+    document.body.style.overflow = isLogoutPopupOpen ? "hidden" : "";
 
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isLogoutPopupOpen]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeLogoutPopup();
+      if (event.key === "Escape") closeLogoutPopup();
     };
 
     if (isLogoutPopupOpen) {
-      window.addEventListener('keydown', handleEscape);
+      window.addEventListener("keydown", handleEscape);
     }
 
-    return () => window.removeEventListener('keydown', handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
   }, [isLogoutPopupOpen]);
 
   const navItems = [
     {
-      label: 'Manage Food Menu',
-      href: '/admin-dashboard',
+      label: "Orders",
+      href: "/admin-dashboard/orders",
+      icon: ShoppingBag,
+    },
+    {
+      label: "Manage Food Menu",
+      href: "/admin-dashboard/manage-food-menu",
       icon: Utensils,
     },
     {
-      label: 'Categories',
-      href: '/admin-dashboard/categories',
+      label: "Categories",
+      href: "/admin-dashboard/categories",
       icon: Tags,
-    },
-    {
-      label: 'Orders',
-      href: '/admin-dashboard/orders',
-      icon: ShoppingBag,
     },
   ];
 
@@ -113,8 +113,8 @@ export default function AdminSidebar({
                   href={item.href}
                   className={`flex items-center gap-2.5 px-3 py-2.5 rounded-sm text-sm font-semibold transition-colors ${
                     isActive
-                      ? 'bg-[#C5A059]/10 border border-[#C5A059]/15 text-[#C5A059]'
-                      : 'text-neutral-400 hover:text-[#C5A059] hover:bg-white/5 border border-transparent'
+                      ? "bg-[#C5A059]/10 border border-[#C5A059]/15 text-[#C5A059]"
+                      : "text-neutral-400 hover:text-[#C5A059] hover:bg-white/5 border border-transparent"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -145,7 +145,7 @@ export default function AdminSidebar({
             </p>
 
             <p className="text-xs font-semibold text-neutral-300 truncate">
-              {adminEmail || 'admin@grandemaar.com'}
+              {adminEmail || "admin@grandemaar.com"}
             </p>
           </div>
 
@@ -160,79 +160,81 @@ export default function AdminSidebar({
         </div>
       </aside>
 
-      {isLogoutPopupOpen && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <button
-            type="button"
-            onClick={closeLogoutPopup}
-            className="absolute inset-0 w-full h-full cursor-default"
-          />
+      {isLogoutPopupOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+            <button
+              type="button"
+              onClick={closeLogoutPopup}
+              className="absolute inset-0 w-full h-full cursor-default"
+            />
 
-          <div className="relative z-10 w-full max-w-md bg-white border border-red-100 shadow-2xl rounded-sm overflow-hidden">
-            <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-neutral-100">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="relative z-10 w-full max-w-md bg-white border border-red-100 shadow-2xl rounded-sm overflow-hidden">
+              <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-neutral-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-red-500 font-bold">
+                      Logout Confirmation
+                    </p>
+
+                    <h3 className="font-serif text-lg font-bold text-neutral-900">
+                      Sign out?
+                    </h3>
+                  </div>
                 </div>
 
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-red-500 font-bold">
-                    Logout Confirmation
+                <button
+                  type="button"
+                  onClick={closeLogoutPopup}
+                  className="w-8 h-8 inline-flex items-center justify-center border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 rounded-sm transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="px-5 py-5 space-y-4">
+                <p className="text-sm text-neutral-600">
+                  Are you sure you want to sign out from the Grand Emaar admin
+                  dashboard?
+                </p>
+
+                <div className="rounded-sm border border-neutral-100 bg-neutral-50 p-3">
+                  <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
+                    Current Account
                   </p>
 
-                  <h3 className="font-serif text-lg font-bold text-neutral-900">
-                    Sign out?
-                  </h3>
+                  <p className="mt-1 text-sm font-semibold text-neutral-900 truncate">
+                    {adminEmail || "admin@grandemaar.com"}
+                  </p>
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={closeLogoutPopup}
-                className="w-8 h-8 inline-flex items-center justify-center border border-neutral-200 text-neutral-500 hover:text-red-600 hover:border-red-300 hover:bg-red-50 rounded-sm transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+              <div className="px-5 py-4 bg-neutral-50 border-t border-neutral-100 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeLogoutPopup}
+                  className="px-4 py-2 border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-100 text-xs font-bold uppercase tracking-widest rounded-sm"
+                >
+                  Cancel
+                </button>
 
-            <div className="px-5 py-5 space-y-4">
-              <p className="text-sm text-neutral-600">
-                Are you sure you want to sign out from the Grand Emaar admin
-                dashboard?
-              </p>
-
-              <div className="rounded-sm border border-neutral-100 bg-neutral-50 p-3">
-                <p className="text-[10px] uppercase tracking-widest text-neutral-400 font-bold">
-                  Current Account
-                </p>
-
-                <p className="mt-1 text-sm font-semibold text-neutral-900 truncate">
-                  {adminEmail || 'admin@grandemaar.com'}
-                </p>
+                <button
+                  type="button"
+                  onClick={confirmLogout}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-widest rounded-sm inline-flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Yes, Sign Out
+                </button>
               </div>
             </div>
-
-            <div className="px-5 py-4 bg-neutral-50 border-t border-neutral-100 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={closeLogoutPopup}
-                className="px-4 py-2 border border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-100 text-xs font-bold uppercase tracking-widest rounded-sm"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={confirmLogout}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase tracking-widest rounded-sm inline-flex items-center gap-2"
-              >
-                <LogOut className="w-4 h-4" />
-                Yes, Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
