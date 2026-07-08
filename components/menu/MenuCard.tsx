@@ -1,13 +1,18 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { motion } from 'motion/react';
 import { MenuItem } from '@/types/menu';
-import { MessageCircle, Plus } from 'lucide-react';
+import { MessageCircle, Plus, ArrowRight } from 'lucide-react';
 
 interface MenuCardProps {
   item: MenuItem;
   onOrderInRestaurant?: (item: MenuItem) => void;
+  // When true, shows a "Browse Menu" link instead of the "Order in Restaurant"
+  // button. Pass this ONLY from the Homepage's Popular Dishes cards.
+  // Leave it false/undefined on the /menu page so ordering stays functional there.
+  showBrowseMenu?: boolean;
 }
 
 const getSafeImageSrc = (item: MenuItem) => {
@@ -20,7 +25,11 @@ const getSafeImageSrc = (item: MenuItem) => {
   )}/500/400`;
 };
 
-export default function MenuCard({ item, onOrderInRestaurant }: MenuCardProps) {
+export default function MenuCard({
+  item,
+  onOrderInRestaurant,
+  showBrowseMenu = false,
+}: MenuCardProps) {
   const imageSrc = getSafeImageSrc(item);
 
   const whatsAppMessage = encodeURIComponent(
@@ -103,18 +112,30 @@ export default function MenuCard({ item, onOrderInRestaurant }: MenuCardProps) {
             Order on WhatsApp
           </a>
 
-          <button
-            type="button"
-            onClick={() => onOrderInRestaurant?.(item)}
-            disabled={!item.is_available}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white text-[11px] font-bold uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-4 h-4" />
-            Order in Restaurant
-          </button>
+          {showBrowseMenu ? (
+            // Homepage variant: sends visitors to the full /menu page instead
+            // of triggering an in-restaurant order directly from this card.
+            <Link
+              href="/menu"
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white text-[11px] font-bold uppercase tracking-widest rounded-sm transition-colors"
+            >
+              Browse Menu
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          ) : (
+            // /menu page variant: keeps the original in-restaurant ordering flow.
+            <button
+              type="button"
+              onClick={() => onOrderInRestaurant?.(item)}
+              disabled={!item.is_available}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C5A059] hover:bg-[#A98443] text-white text-[11px] font-bold uppercase tracking-widest rounded-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus className="w-4 h-4" />
+              Order in Restaurant
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
   );
 }
-
