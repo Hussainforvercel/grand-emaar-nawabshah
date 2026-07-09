@@ -241,9 +241,8 @@ export default function AdminInvoiceModal({
     <>
       {/* SCREEN-ONLY modal. Entirely hidden during print (print:hidden),
           so its fixed positioning / flex centering / overflow-hidden /
-          max-h-[92vh] can never interfere with the printed page. */}
-      <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4 print:hidden">
-        <button
+        {/* SCREEN-ONLY modal. Hidden during print so it cannot produce an extra page. */}
+        <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4 print:hidden">
           type="button"
           onClick={onClose}
           className="absolute inset-0"
@@ -308,24 +307,20 @@ export default function AdminInvoiceModal({
         </div>
       </div>
 
-      {/* PRINT-ONLY content, portaled directly onto <body>. This lives
-          completely outside the modal's fixed/flex/overflow tree, so
-          there is no ancestor that can center, clip, or push it around
-          when the browser paginates for print. Hidden on screen
-          (hidden print:block), so it never shows up while the modal
-          is open normally. */}
+      {/* PRINT-ONLY content, portaled directly onto <body>. Hidden on screen (hidden print:block) so
+          it prints cleanly without modal overlay or extra pages. */}
       {typeof document !== 'undefined' &&
         createPortal(
           <div className="hidden print:block">
             <style jsx global>{`
               @media print {
-                @page {
-                  margin: 12mm;
-                }
+                @page { margin: 12mm; }
               }
             `}</style>
 
-            <InvoiceBody order={order} />
+            <div className="p-8">
+              <InvoiceBody order={order} />
+            </div>
           </div>,
           document.body
         )}

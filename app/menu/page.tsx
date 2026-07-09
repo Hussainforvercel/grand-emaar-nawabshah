@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import Navbar from '@/components/layout/Navbar';
-import Footer from '@/components/layout/Footer';
-import SectionTitle from '@/components/common/SectionTitle';
-import CategoryFilter from '@/components/menu/CategoryFilter';
-import MenuGrid from '@/components/menu/MenuGrid';
-import WelcomePopup from '@/components/common/WelcomePopup';
-import OrderSuccessPopup from '@/components/common/Ordersuccessfullpopup';
-import { MenuItem } from '@/types/menu';
-import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
-import { getWhatsAppLink } from '@/lib/whatsapp';
+import React, { useState, useEffect, useMemo } from "react";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import SectionTitle from "@/components/common/SectionTitle";
+import CategoryFilter from "@/components/menu/CategoryFilter";
+import MenuGrid from "@/components/menu/MenuGrid";
+import WelcomePopup from "@/components/common/WelcomePopup";
+import OrderSuccessPopup from "@/components/common/Ordersuccessfullpopup";
+import { MenuItem } from "@/types/menu";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { getWhatsAppLink } from "@/lib/whatsapp";
 import {
   Search,
   UtensilsCrossed,
@@ -20,8 +20,8 @@ import {
   Minus,
   Trash2,
   MessageCircle,
-} from 'lucide-react';
-import WhatsAppButton from '@/components/common/WhatsAppButton';
+} from "lucide-react";
+import WhatsAppButton from "@/components/common/WhatsAppButton";
 
 interface CartItem {
   name: string;
@@ -32,23 +32,23 @@ interface CartItem {
 
 export default function MenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
-  const [categories, setCategories] = useState<string[]>(['All']);
-  const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState<string[]>(["All"]);
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isOrderOpen, setIsOrderOpen] = useState(false);
 
-  const [customerName, setCustomerName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
-  const [notes, setNotes] = useState('');
+  const [customerName, setCustomerName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('grand_emaar_cart');
+    const savedCart = localStorage.getItem("grand_emaar_cart");
 
     if (savedCart) {
       try {
@@ -60,7 +60,7 @@ export default function MenuPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('grand_emaar_cart', JSON.stringify(cartItems));
+    localStorage.setItem("grand_emaar_cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
   useEffect(() => {
@@ -69,18 +69,18 @@ export default function MenuPage() {
 
       if (!isSupabaseConfigured || !supabase) {
         setItems([]);
-        setCategories(['All']);
+        setCategories(["All"]);
         setIsLoading(false);
         return;
       }
 
       try {
         const { data, error } = await supabase
-          .from('menu_items')
-          .select('*')
-          .eq('is_available', true)
-          .order('sort_order', { ascending: true })
-          .order('name', { ascending: true });
+          .from("menu_items")
+          .select("*")
+          .eq("is_available", true)
+          .order("sort_order", { ascending: true })
+          .order("name", { ascending: true });
 
         if (error) throw error;
 
@@ -88,14 +88,14 @@ export default function MenuPage() {
         setItems(fetchedItems);
 
         const uniqueCategories = Array.from(
-          new Set(fetchedItems.map((item) => item.category).filter(Boolean))
+          new Set(fetchedItems.map((item) => item.category).filter(Boolean)),
         );
 
-        setCategories(['All', ...uniqueCategories]);
+        setCategories(["All", ...uniqueCategories]);
       } catch (error) {
-        console.error('Error fetching menu:', error);
+        console.error("Error fetching menu:", error);
         setItems([]);
-        setCategories(['All']);
+        setCategories(["All"]);
       } finally {
         setIsLoading(false);
       }
@@ -112,7 +112,7 @@ export default function MenuPage() {
         return prev.map((cartItem) =>
           cartItem.name === item.name
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
+            : cartItem,
         );
       }
 
@@ -122,7 +122,7 @@ export default function MenuPage() {
           name: item.name,
           quantity: 1,
           price: Number(item.price),
-          image: item.image_url || '',
+          image: item.image_url || "",
         },
       ];
     });
@@ -131,8 +131,8 @@ export default function MenuPage() {
   const increaseQty = (name: string) => {
     setCartItems((prev) =>
       prev.map((item) =>
-        item.name === name ? { ...item, quantity: item.quantity + 1 } : item
-      )
+        item.name === name ? { ...item, quantity: item.quantity + 1 } : item,
+      ),
     );
   };
 
@@ -140,9 +140,9 @@ export default function MenuPage() {
     setCartItems((prev) =>
       prev
         .map((item) =>
-          item.name === name ? { ...item, quantity: item.quantity - 1 } : item
+          item.name === name ? { ...item, quantity: item.quantity - 1 } : item,
         )
-        .filter((item) => item.quantity > 0)
+        .filter((item) => item.quantity > 0),
     );
   };
 
@@ -152,7 +152,7 @@ export default function MenuPage() {
 
   const cartTotal = cartItems.reduce(
     (total, item) => total + item.price * item.quantity,
-    0
+    0,
   );
 
   const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
@@ -161,7 +161,7 @@ export default function MenuPage() {
     const query = searchQuery.trim().toLowerCase();
 
     const categoryFiltered =
-      activeCategory === 'All'
+      activeCategory === "All"
         ? items
         : items.filter((item) => item.category === activeCategory);
 
@@ -173,10 +173,10 @@ export default function MenuPage() {
         item.category,
         item.description,
         item.price,
-        item.is_available ? 'available' : 'not available soldout',
+        item.is_available ? "available" : "not available soldout",
       ]
         .filter(Boolean)
-        .join(' ')
+        .join(" ")
         .toLowerCase();
 
       return searchableText.includes(query);
@@ -186,37 +186,37 @@ export default function MenuPage() {
   const orderMessage = `Hello Grand Emaar Hotel, I want to place this order:%0A%0A${cartItems
     .map(
       (item) =>
-        `${item.quantity}x ${item.name} - Rs. ${item.price * item.quantity}`
+        `${item.quantity}x ${item.name} - Rs. ${item.price * item.quantity}`,
     )
-    .join('%0A')}%0A%0ATotal: Rs. ${cartTotal}`;
+    .join("%0A")}%0A%0ATotal: Rs. ${cartTotal}`;
 
   const handleSubmitOrder = async () => {
     if (!customerName || !phone || cartItems.length === 0) {
-      alert('Please add items and enter your name and phone number.');
+      alert("Please add items and enter your name and phone number.");
       return;
     }
 
     if (!isSupabaseConfigured || !supabase) {
-      alert('Order system is not connected with database.');
+      alert("Order system is not connected with database.");
       return;
     }
 
     setIsSubmitting(true);
 
-    const { error } = await supabase.from('orders').insert({
+    const { error } = await supabase.from("orders").insert({
       customer_name: customerName,
       phone,
       address,
       items: cartItems,
       total_amount: cartTotal,
-      status: 'pending',
+      status: "pending",
       notes,
     });
 
     setIsSubmitting(false);
 
     if (error) {
-      alert('Order submit nahi hua. Supabase orders table check karo.');
+      alert("Order submit nahi hua. Supabase orders table check karo.");
       console.error(error);
       return;
     }
@@ -224,10 +224,10 @@ export default function MenuPage() {
     setShowSuccessPopup(true);
 
     setCartItems([]);
-    setCustomerName('');
-    setPhone('');
-    setAddress('');
-    setNotes('');
+    setCustomerName("");
+    setPhone("");
+    setAddress("");
+    setNotes("");
     setIsOrderOpen(false);
   };
 
@@ -236,7 +236,10 @@ export default function MenuPage() {
       <WelcomePopup duration={3000} logoSrc="/logo/logo.png" />
 
       <div>
-        <Navbar cartCount={cartCount} onCartClick={() => setIsOrderOpen(true)} />
+        <Navbar
+          cartCount={cartCount}
+          onCartClick={() => setIsOrderOpen(true)}
+        />
 
         <section className="bg-neutral-950 text-white py-16 border-b border-[#C5A059]/15 relative">
           <div className="absolute inset-0 z-0 opacity-20">
@@ -276,7 +279,7 @@ export default function MenuPage() {
               {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => setSearchQuery("")}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-red-500"
                   aria-label="Clear search"
                 >
@@ -286,12 +289,12 @@ export default function MenuPage() {
             </div>
 
             <div className="mt-3 text-center text-[11px] uppercase tracking-widest font-mono text-neutral-400">
-              Showing{' '}
+              Showing{" "}
               <span className="text-neutral-900 font-bold">
                 {filteredItems.length}
-              </span>{' '}
-              of{' '}
-              <span className="text-neutral-900 font-bold">{items.length}</span>{' '}
+              </span>{" "}
+              of{" "}
+              <span className="text-neutral-900 font-bold">{items.length}</span>{" "}
               dishes
             </div>
           </div>
@@ -402,7 +405,7 @@ export default function MenuPage() {
                             src={
                               item.image ||
                               `https://picsum.photos/seed/${encodeURIComponent(
-                                item.name
+                                item.name,
                               )}/100/100`
                             }
                             alt={item.name}
@@ -411,7 +414,7 @@ export default function MenuPage() {
                             onError={(event) => {
                               event.currentTarget.onerror = null;
                               event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
-                                item.name
+                                item.name,
                               )}/100/100`;
                             }}
                           />
@@ -484,11 +487,13 @@ export default function MenuPage() {
                       className="w-full bg-neutral-900 border border-[#C5A059]/20 text-white placeholder:text-neutral-500 px-4 py-3 text-sm outline-none rounded-sm focus:border-[#C5A059]/50"
                     />
 
-                    <textarea
+                    <input
+                      type="number"
                       value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Table Number / Delivery Address"
-                      rows={3}
+                      onChange={(e) =>
+                        setAddress(e.target.value.replace(/\D/g, ""))
+                      }
+                      placeholder="Table Number"
                       className="w-full bg-neutral-900 border border-[#C5A059]/20 text-white placeholder:text-neutral-500 px-4 py-3 text-sm outline-none rounded-sm focus:border-[#C5A059]/50"
                     />
 
@@ -506,7 +511,9 @@ export default function MenuPage() {
                       disabled={isSubmitting}
                       className="w-full bg-[#C5A059] hover:bg-[#A98443] text-white py-3.5 text-xs font-bold uppercase tracking-widest rounded-sm disabled:opacity-50 transition-colors"
                     >
-                      {isSubmitting ? 'Submitting...' : 'Complete Restaurant Order'}
+                      {isSubmitting
+                        ? "Submitting..."
+                        : "Complete Restaurant Order"}
                     </button>
 
                     <a

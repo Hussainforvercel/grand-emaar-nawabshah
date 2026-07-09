@@ -39,7 +39,7 @@ export default function AdminFinanceReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4 print:static print:bg-white print:p-0">
+    <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4 print:!static print:!flex print:!items-start print:!justify-center print:!bg-white print:!p-0 print:!w-full print:!min-w-full">
       <button
         type="button"
         onClick={onClose}
@@ -47,7 +47,7 @@ export default function AdminFinanceReportModal({
         aria-label="Close report modal"
       />
 
-      <div className="relative bg-white w-full max-w-3xl max-h-[92vh] rounded-sm shadow-2xl flex flex-col overflow-hidden print:max-h-none print:shadow-none print:max-w-none print:w-full">
+      <div className="relative bg-white w-full max-w-3xl max-h-[92vh] rounded-sm shadow-2xl flex flex-col overflow-hidden print:max-h-none print:shadow-none print:max-w-none print:w-full print:!overflow-visible">
         <div className="flex items-center justify-between px-5 py-3 bg-gradient-to-br from-neutral-950 to-neutral-900 print:hidden">
           <div className="flex items-center gap-3">
             <Image
@@ -78,7 +78,7 @@ export default function AdminFinanceReportModal({
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 print:overflow-visible">
+        <div className="overflow-y-auto flex-1 print:overflow-visible print:!h-auto print:!flex-none">
           <div id="finance-report-print-area" className="p-5 sm:p-6 print:p-8">
             <div className="flex flex-col sm:flex-row sm:justify-between gap-4 border-b border-neutral-200 pb-4">
               <div className="flex items-start gap-4">
