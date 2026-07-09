@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import {
   Trash2,
   RefreshCw,
@@ -23,9 +23,9 @@ import {
   BellRing,
   Search,
   X,
-} from 'lucide-react';
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminInvoiceModal from '@/components/admin/AdminInvoiceModal';
+} from "lucide-react";
+import AdminSidebar from "@/components/admin/AdminSidebar";
+import AdminInvoiceModal from "@/components/admin/AdminInvoiceModal";
 
 interface OrderItem {
   name: string;
@@ -52,11 +52,11 @@ interface MenuImageItem {
 }
 
 const statusOptions = [
-  'pending',
-  'confirmed',
-  'preparing',
-  'completed',
-  'cancelled',
+  "pending",
+  "confirmed",
+  "preparing",
+  "completed",
+  "cancelled",
 ];
 
 const statusIcons: Record<string, React.ElementType> = {
@@ -77,7 +77,7 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuImageItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [adminEmail, setAdminEmail] = useState('');
+  const [adminEmail, setAdminEmail] = useState("");
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] =
     useState<Order | null>(null);
   const [selectedOrderDetails, setSelectedOrderDetails] =
@@ -91,10 +91,10 @@ export default function AdminOrdersPage() {
 
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   //  Tab state: "recent" (last 24 hours) or "history" (older than 24 hours)
-  const [activeTab, setActiveTab] = useState<'recent' | 'history'>('recent');
+  const [activeTab, setActiveTab] = useState<"recent" | "history">("recent");
 
   //  Search state: works across both Recent and History tabs
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const isWithinLast24Hours = (dateString: string) => {
     const orderDate = new Date(dateString);
@@ -106,18 +106,17 @@ export default function AdminOrdersPage() {
 
   const stats = useMemo(() => {
     const completedOrders = orders.filter(
-      (order) => 
-        order.status === 'completed'
+      (order) => order.status === "completed",
     );
 
     return {
       totalOrders: orders.length,
-      pendingOrders: orders.filter((order) => order.status === 'pending')
+      pendingOrders: orders.filter((order) => order.status === "pending")
         .length,
       completedOrders: completedOrders.length,
       totalRevenue: completedOrders.reduce(
         (sum, order) => sum + Number(order.total_amount || 0),
-        0
+        0,
       ),
     };
   }, [orders]);
@@ -131,10 +130,10 @@ export default function AdminOrdersPage() {
       orders.filter(
         (order) =>
           isWithinLast24Hours(order.created_at) &&
-          order.status !== 'completed' &&
-          order.status !== 'cancelled'
+          order.status !== "completed" &&
+          order.status !== "cancelled",
       ),
-    [orders]
+    [orders],
   );
 
   const historyOrders = useMemo(
@@ -142,13 +141,13 @@ export default function AdminOrdersPage() {
       orders.filter(
         (order) =>
           !isWithinLast24Hours(order.created_at) ||
-          order.status === 'completed' ||
-          order.status === 'cancelled'
+          order.status === "completed" ||
+          order.status === "cancelled",
       ),
-    [orders]
+    [orders],
   );
 
-  const baseOrders = activeTab === 'recent' ? recentOrders : historyOrders;
+  const baseOrders = activeTab === "recent" ? recentOrders : historyOrders;
 
   //  Search filters on top of whichever tab is active
   const displayedOrders = useMemo(() => {
@@ -159,9 +158,9 @@ export default function AdminOrdersPage() {
       const idMatch = order.id.toLowerCase().includes(q);
       const nameMatch = order.customer_name.toLowerCase().includes(q);
       const phoneMatch = order.phone.toLowerCase().includes(q);
-      const tableMatch = (order.address || '').toLowerCase().includes(q);
+      const tableMatch = (order.address || "").toLowerCase().includes(q);
       const itemMatch = order.items?.some((item) =>
-        item.name.toLowerCase().includes(q)
+        item.name.toLowerCase().includes(q),
       );
 
       return idMatch || nameMatch || phoneMatch || tableMatch || itemMatch;
@@ -173,8 +172,8 @@ export default function AdminOrdersPage() {
       await supabase.auth.signOut();
     }
 
-    localStorage.removeItem('admin-session');
-    router.push('/admin-login');
+    localStorage.removeItem("admin-session");
+    router.push("/admin-login");
   };
 
   // Plays the bell sound for every new order, automatically.
@@ -190,13 +189,13 @@ export default function AdminOrdersPage() {
       await orderBellAudioRef.current.play();
     } catch (error) {
       // Will only happen if the admin hasn't interacted with the page at all yet
-      console.log('Order bell sound blocked by browser:', error);
+      console.log("Order bell sound blocked by browser:", error);
     }
   };
 
   const attachRealDishImages = (
     ordersData: Order[],
-    menuItemsData: MenuImageItem[]
+    menuItemsData: MenuImageItem[],
   ) => {
     const imageMap = new Map<string, string>();
 
@@ -219,7 +218,9 @@ export default function AdminOrdersPage() {
   const fetchMenuImages = async () => {
     if (!supabase) return [];
 
-    const { data } = await supabase.from('menu_items').select('name, image_url');
+    const { data } = await supabase
+      .from("menu_items")
+      .select("name, image_url");
     const menuData = (data || []) as MenuImageItem[];
 
     setMenuItems(menuData);
@@ -238,9 +239,9 @@ export default function AdminOrdersPage() {
     const [{ data: ordersData, error: ordersError }, menuData] =
       await Promise.all([
         supabase
-          .from('orders')
-          .select('*')
-          .order('created_at', { ascending: false }),
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false }),
         fetchMenuImages(),
       ]);
 
@@ -255,9 +256,9 @@ export default function AdminOrdersPage() {
     if (!supabase) return null;
 
     const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
       .single();
 
     if (error || !data) return null;
@@ -274,11 +275,11 @@ export default function AdminOrdersPage() {
   const showNewOrderNotification = (order: Order) => {
     playOrderBell();
 
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification('New Order Received', {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("New Order Received", {
         body: `${order.customer_name} - Rs. ${Number(
-          order.total_amount
-        ).toLocaleString()} - Table No: ${order.address || 'N/A'}`,
+          order.total_amount,
+        ).toLocaleString()} - Table No: ${order.address || "N/A"}`,
       });
     }
 
@@ -310,43 +311,43 @@ export default function AdminOrdersPage() {
     if (!supabase) return;
 
     const { error } = await supabase
-      .from('orders')
+      .from("orders")
       .update({ status })
-      .eq('id', orderId);
+      .eq("id", orderId);
 
     if (!error) {
       setOrders((prev) =>
         prev.map((order) =>
-          order.id === orderId ? { ...order, status } : order
-        )
+          order.id === orderId ? { ...order, status } : order,
+        ),
       );
     }
   };
 
   const deleteOrder = async (orderId: string) => {
-  if (!supabase) return;
+    if (!supabase) return;
 
-  const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    const { error } = await supabase.from("orders").delete().eq("id", orderId);
 
-  if (!error) {
-    setOrders((prev) => prev.filter((order) => order.id !== orderId));
-  }
+    if (!error) {
+      setOrders((prev) => prev.filter((order) => order.id !== orderId));
+    }
 
-  setOrderToDelete(null);
-};
+    setOrderToDelete(null);
+  };
 
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case 'completed':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'confirmed':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'preparing':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-      case 'cancelled':
-        return 'bg-red-50 text-red-700 border-red-200';
+      case "completed":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "confirmed":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "preparing":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "cancelled":
+        return "bg-red-50 text-red-700 border-red-200";
       default:
-        return 'bg-neutral-100 text-neutral-700 border-neutral-200';
+        return "bg-neutral-100 text-neutral-700 border-neutral-200";
     }
   };
 
@@ -370,7 +371,7 @@ export default function AdminOrdersPage() {
   }, []);
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
+    if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
   }, []);
@@ -398,31 +399,31 @@ export default function AdminOrdersPage() {
       }
     };
 
-    document.addEventListener('click', unlockAudio);
-    document.addEventListener('keydown', unlockAudio);
+    document.addEventListener("click", unlockAudio);
+    document.addEventListener("keydown", unlockAudio);
 
     return () => {
-      document.removeEventListener('click', unlockAudio);
-      document.removeEventListener('keydown', unlockAudio);
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
     };
   }, []);
 
   //  Reset search when switching tabs so old queries don't confuse the next tab
   useEffect(() => {
-    setSearchQuery('');
+    setSearchQuery("");
   }, [activeTab]);
 
   useEffect(() => {
     if (!supabase || !isSupabaseConfigured) return;
 
     const channel = supabase
-      .channel('admin-orders-realtime')
+      .channel("admin-orders-realtime")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders',
+          event: "INSERT",
+          schema: "public",
+          table: "orders",
         },
         async (payload) => {
           const insertedOrder = payload.new as Order;
@@ -433,7 +434,7 @@ export default function AdminOrdersPage() {
 
           setOrders((prev) => {
             const alreadyExists = prev.some(
-              (order) => order.id === orderWithImage.id
+              (order) => order.id === orderWithImage.id,
             );
 
             if (alreadyExists) return prev;
@@ -442,14 +443,14 @@ export default function AdminOrdersPage() {
           });
 
           showNewOrderNotification(orderWithImage);
-        }
+        },
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
         },
         async (payload) => {
           const updatedOrder = payload.new as Order;
@@ -460,28 +461,28 @@ export default function AdminOrdersPage() {
 
           setOrders((prev) =>
             prev.map((order) =>
-              order.id === orderWithImage.id ? orderWithImage : order
-            )
+              order.id === orderWithImage.id ? orderWithImage : order,
+            ),
           );
-        }
+        },
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'orders',
+          event: "DELETE",
+          schema: "public",
+          table: "orders",
         },
         (payload) => {
           const deletedOrder = payload.old as Order;
 
           setOrders((prev) =>
-            prev.filter((order) => order.id !== deletedOrder.id)
+            prev.filter((order) => order.id !== deletedOrder.id),
           );
-        }
+        },
       )
       .subscribe((status) => {
-        console.log('Orders realtime status:', status);
+        console.log("Orders realtime status:", status);
       });
 
     return () => {
@@ -491,11 +492,7 @@ export default function AdminOrdersPage() {
 
   return (
     <>
-      <audio
-        ref={orderBellAudioRef}
-        src="/order-bell.mp3"
-        preload="auto"
-      />
+      <audio ref={orderBellAudioRef} src="/order-bell.mp3" preload="auto" />
 
       {newOrderAlert && (
         <div
@@ -554,7 +551,7 @@ export default function AdminOrdersPage() {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-neutral-800">
                     <Table2 className="w-3.5 h-3.5 text-[#C5A059]" />
-                    {newOrderAlert.address || 'N/A'}
+                    {newOrderAlert.address || "N/A"}
                   </p>
                 </div>
               </div>
@@ -581,7 +578,7 @@ export default function AdminOrdersPage() {
                             onError={(event) => {
                               event.currentTarget.onerror = null;
                               event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
-                                item.name
+                                item.name,
                               )}/100/100`;
                             }}
                           />
@@ -630,7 +627,7 @@ export default function AdminOrdersPage() {
                 onClick={closeNewOrderAlert}
                 className="w-full rounded-sm bg-[#C5A059] hover:bg-[#A98443] text-white text-xs font-bold uppercase tracking-widest py-3 transition-colors"
               >
-                {orderAlertQueue.length > 0 ? 'Got It — Next Order' : 'Got It'}
+                {orderAlertQueue.length > 0 ? "Got It — Next Order" : "Got It"}
               </button>
             </div>
           </div>
@@ -738,11 +735,11 @@ export default function AdminOrdersPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('recent')}
+                  onClick={() => setActiveTab("recent")}
                   className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
-                    activeTab === 'recent'
-                      ? 'bg-[#C5A059] text-white'
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]'
+                    activeTab === "recent"
+                      ? "bg-[#C5A059] text-white"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]"
                   }`}
                 >
                   Recent Orders
@@ -750,11 +747,11 @@ export default function AdminOrdersPage() {
 
                 <button
                   type="button"
-                  onClick={() => setActiveTab('history')}
+                  onClick={() => setActiveTab("history")}
                   className={`px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${
-                    activeTab === 'history'
-                      ? 'bg-[#C5A059] text-white'
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]'
+                    activeTab === "history"
+                      ? "bg-[#C5A059] text-white"
+                      : "bg-neutral-100 text-neutral-600 hover:bg-[#C5A059]/10 hover:text-[#A98443]"
                   }`}
                 >
                   History
@@ -773,7 +770,7 @@ export default function AdminOrdersPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={`Search ${
-                      activeTab === 'recent' ? 'recent orders' : 'history'
+                      activeTab === "recent" ? "recent orders" : "history"
                     } by name, phone, table or item...`}
                     className="w-full border border-neutral-200 bg-white pl-10 pr-9 py-2.5 rounded-sm text-sm text-neutral-800 placeholder:text-neutral-400 outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/15 transition-all text-center placeholder:text-center"
                   />
@@ -781,7 +778,7 @@ export default function AdminOrdersPage() {
                   {searchQuery && (
                     <button
                       type="button"
-                      onClick={() => setSearchQuery('')}
+                      onClick={() => setSearchQuery("")}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition-colors"
                     >
                       <X className="w-4 h-4" />
@@ -791,12 +788,12 @@ export default function AdminOrdersPage() {
 
                 {searchQuery && (
                   <p className="text-xs text-neutral-500">
-                    Found{' '}
+                    Found{" "}
                     <span className="font-bold text-neutral-800">
                       {displayedOrders.length}
-                    </span>{' '}
-                    of {baseOrders.length}{' '}
-                    {activeTab === 'recent' ? 'recent' : 'history'} orders
+                    </span>{" "}
+                    of {baseOrders.length}{" "}
+                    {activeTab === "recent" ? "recent" : "history"} orders
                   </p>
                 )}
               </div>
@@ -823,26 +820,26 @@ export default function AdminOrdersPage() {
 
                 <h2 className="font-serif text-xl font-bold text-neutral-900">
                   {searchQuery
-                    ? 'No Matching Orders'
-                    : activeTab === 'recent'
-                    ? 'No Recent Orders'
-                    : 'No Order History'}
+                    ? "No Matching Orders"
+                    : activeTab === "recent"
+                      ? "No Recent Orders"
+                      : "No Order History"}
                 </h2>
 
                 <p className="text-sm text-neutral-500 mt-1">
                   {searchQuery
                     ? `No orders match "${searchQuery}" in ${
-                        activeTab === 'recent' ? 'recent orders' : 'history'
+                        activeTab === "recent" ? "recent orders" : "history"
                       }.`
-                    : activeTab === 'recent'
-                    ? 'No orders in the last 24 hours.'
-                    : 'No past order history found.'}
+                    : activeTab === "recent"
+                      ? "No orders in the last 24 hours."
+                      : "No past order history found."}
                 </p>
 
                 {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => setSearchQuery("")}
                     className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[#A98443] hover:text-[#C5A059]"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -905,7 +902,7 @@ export default function AdminOrdersPage() {
                                   <span className="break-words">
                                     <span className="font-bold text-neutral-800">
                                       Table No:
-                                    </span>{' '}
+                                    </span>{" "}
                                     {order.address}
                                   </span>
                                 </p>
@@ -934,7 +931,7 @@ export default function AdminOrdersPage() {
                                         onError={(event) => {
                                           event.currentTarget.onerror = null;
                                           event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
-                                            item.name
+                                            item.name,
                                           )}/100/100`;
                                         }}
                                       />
@@ -983,7 +980,7 @@ export default function AdminOrdersPage() {
                           >
                             <span
                               className={`inline-flex items-center gap-1.5 mb-3 px-3 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(
-                                order.status
+                                order.status,
                               )}`}
                             >
                               <StatusIcon className="w-3 h-3" />
@@ -1034,13 +1031,13 @@ export default function AdminOrdersPage() {
                               </button>
 
                               <button
-  onClick={() => setOrderToDelete(order)}
-  type="button"
-  className="inline-flex w-full items-center justify-center gap-2 px-3 h-9 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-sm transition-colors text-[10px] font-bold uppercase tracking-widest"
->
-  <Trash2 className="w-4 h-4" />
-  Delete
-</button>
+                                onClick={() => setOrderToDelete(order)}
+                                type="button"
+                                className="inline-flex w-full items-center justify-center gap-2 px-3 h-9 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-sm transition-colors text-[10px] font-bold uppercase tracking-widest"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1070,7 +1067,6 @@ export default function AdminOrdersPage() {
             onClick={(e) => e.stopPropagation()}
             className="flex w-full max-w-lg max-h-[85vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-[#C5A059]/30"
           >
-            
             <div className="flex shrink-0 items-center justify-between bg-gradient-to-br from-neutral-950 to-neutral-900 px-6 py-5">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-950">
@@ -1104,12 +1100,12 @@ export default function AdminOrdersPage() {
               <div className="flex items-center justify-between">
                 <span
                   className={`inline-flex items-center gap-1.5 px-3 py-1 border rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(
-                    selectedOrderDetails.status
+                    selectedOrderDetails.status,
                   )}`}
                 >
                   {(() => {
                     const DetailStatusIcon = getStatusIcon(
-                      selectedOrderDetails.status
+                      selectedOrderDetails.status,
                     );
                     return <DetailStatusIcon className="w-3 h-3" />;
                   })()}
@@ -1159,9 +1155,7 @@ export default function AdminOrdersPage() {
                   </p>
                   <p className="mt-1 flex items-center gap-1.5 text-sm text-neutral-700">
                     <CalendarDays className="w-3.5 h-3.5 text-[#C5A059]" />
-                    {new Date(
-                      selectedOrderDetails.created_at
-                    ).toLocaleString()}
+                    {new Date(selectedOrderDetails.created_at).toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -1188,7 +1182,7 @@ export default function AdminOrdersPage() {
                             onError={(event) => {
                               event.currentTarget.onerror = null;
                               event.currentTarget.src = `https://picsum.photos/seed/${encodeURIComponent(
-                                item.name
+                                item.name,
                               )}/100/100`;
                             }}
                           />
@@ -1228,7 +1222,8 @@ export default function AdminOrdersPage() {
                   Total Amount
                 </p>
                 <p className="text-xl font-bold text-white">
-                  Rs. {Number(selectedOrderDetails.total_amount).toLocaleString()}
+                  Rs.{" "}
+                  {Number(selectedOrderDetails.total_amount).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -1236,52 +1231,52 @@ export default function AdminOrdersPage() {
         </div>
       )}
       {orderToDelete && (
-  <div
-    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden"
-    onClick={() => setOrderToDelete(null)}
-  >
-    <div
-      onClick={(e) => e.stopPropagation()}
-      className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-[#C5A059]/30"
-    >
-      <div className="flex flex-col items-center px-6 pt-8 pb-6 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
-          <Trash2 className="w-6 h-6 text-red-600" />
-        </div>
-
-        <h2 className="mt-4 font-serif text-lg font-bold text-neutral-900">
-          Delete This Order?
-        </h2>
-
-        <p className="mt-2 text-sm text-neutral-500">
-          Are you sure you want to delete{' '}
-          <span className="font-semibold text-neutral-800">
-            {orderToDelete.customer_name}
-          </span>
-          's order? This action cannot be undone.
-        </p>
-
-        <div className="mt-6 flex w-full gap-3">
-          <button
-            type="button"
-            onClick={() => setOrderToDelete(null)}
-            className="flex-1 rounded-sm border border-neutral-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-neutral-600 transition-colors hover:bg-neutral-50"
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 print:hidden"
+          onClick={() => setOrderToDelete(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-[#C5A059]/30"
           >
-            Cancel
-          </button>
+            <div className="flex flex-col items-center px-6 pt-8 pb-6 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
 
-          <button
-            type="button"
-            onClick={() => deleteOrder(orderToDelete.id)}
-            className="flex-1 rounded-sm bg-red-600 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-red-700"
-          >
-            Delete
-          </button>
+              <h2 className="mt-4 font-serif text-lg font-bold text-neutral-900">
+                Delete This Order?
+              </h2>
+
+              <p className="mt-2 text-sm text-neutral-500">
+                Are you sure you want to delete{" "}
+                <span className="font-semibold text-neutral-800">
+                  {orderToDelete.customer_name}
+                </span>
+                's order? This action cannot be undone.
+              </p>
+
+              <div className="mt-6 flex w-full gap-3">
+                <button
+                  type="button"
+                  onClick={() => setOrderToDelete(null)}
+                  className="flex-1 rounded-sm border border-neutral-200 bg-white py-2.5 text-xs font-bold uppercase tracking-widest text-neutral-600 transition-colors hover:bg-neutral-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => deleteOrder(orderToDelete.id)}
+                  className="flex-1 rounded-sm bg-red-600 py-2.5 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </>
   );
 }
