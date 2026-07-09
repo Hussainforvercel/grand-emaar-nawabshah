@@ -482,8 +482,16 @@ export default function MenuPage() {
 
                     <input
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="Phone Number"
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 11);
+                        setPhone(digitsOnly);
+                      }}
+                      placeholder="03XXXXXXXXX"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={11}
                       className="w-full bg-neutral-900 border border-[#C5A059]/20 text-white placeholder:text-neutral-500 px-4 py-3 text-sm outline-none rounded-sm focus:border-[#C5A059]/50"
                     />
 
