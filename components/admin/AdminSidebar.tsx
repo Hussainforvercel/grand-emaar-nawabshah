@@ -11,6 +11,7 @@ import {
   X,
   ShoppingBag,
   Tags,
+  BarChart3,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -70,6 +71,11 @@ export default function AdminSidebar({
       label: "Categories",
       href: "/admin-dashboard/categories",
       icon: Tags,
+    },
+    {
+      label: "Finance & Reports",
+      href: "/admin-dashboard/finance",
+      icon:  BarChart3,
     },
   ];
 
