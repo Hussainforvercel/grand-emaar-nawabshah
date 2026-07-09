@@ -241,8 +241,9 @@ export default function AdminInvoiceModal({
     <>
       {/* SCREEN-ONLY modal. Entirely hidden during print (print:hidden),
           so its fixed positioning / flex centering / overflow-hidden /
-        {/* SCREEN-ONLY modal. Hidden during print so it cannot produce an extra page. */}
-        <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4 print:hidden">
+          max-h-[92vh] can never interfere with the printed page. */}
+      <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4 print:hidden">
+        <button
           type="button"
           onClick={onClose}
           className="absolute inset-0"
@@ -307,20 +308,37 @@ export default function AdminInvoiceModal({
         </div>
       </div>
 
-      {/* PRINT-ONLY content, portaled directly onto <body>. Hidden on screen (hidden print:block) so
-          it prints cleanly without modal overlay or extra pages. */}
+      {/* PRINT-ONLY content, portaled directly onto <body>. This lives
+          completely outside the modal's fixed/flex/overflow tree, so
+          there is no ancestor that can center, clip, or push it around
+          when the browser paginates for print. Hidden on screen
+          (hidden print:block), so it never shows up while the modal
+          is open normally. */}
       {typeof document !== 'undefined' &&
         createPortal(
-          <div className="hidden print:block">
+          <div id="admin-invoice-print-root" className="hidden print:block">
             <style jsx global>{`
               @media print {
-                @page { margin: 12mm; }
+                @page {
+                  margin: 12mm;
+                }
+
+                /* Hide everything else on the page (the dashboard behind
+                  the modal) and show only this portaled invoice, so
+                  print never produces a blank first page or pushes the
+                   invoice below the dashboard's own height. */
+                body > *:not(#admin-invoice-print-root) {
+                  display: none !important;
+                }
+
+                #admin-invoice-print-root {
+                  display: block !important;
+                  position: static !important;
+                }
               }
             `}</style>
 
-            <div className="p-8">
-              <InvoiceBody order={order} />
-            </div>
+            <InvoiceBody order={order} />
           </div>,
           document.body
         )}
