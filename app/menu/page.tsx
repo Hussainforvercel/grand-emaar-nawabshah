@@ -20,6 +20,7 @@ import {
   Minus,
   Trash2,
   MessageCircle,
+  CheckCircle2,
 } from "lucide-react";
 import WhatsAppButton from "@/components/common/WhatsAppButton";
 
@@ -47,6 +48,9 @@ export default function MenuPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
+  // NEW: small "Item added to cart" toast (instead of opening the full bucket)
+  const [showAddedToast, setShowAddedToast] = useState(false);
+
   useEffect(() => {
     const savedCart = localStorage.getItem("grand_emaar_cart");
 
@@ -62,6 +66,13 @@ export default function MenuPage() {
   useEffect(() => {
     localStorage.setItem("grand_emaar_cart", JSON.stringify(cartItems));
   }, [cartItems]);
+
+  // NEW: auto-hide the "added to cart" toast after 2 seconds
+  useEffect(() => {
+    if (!showAddedToast) return;
+    const timer = setTimeout(() => setShowAddedToast(false), 2000);
+    return () => clearTimeout(timer);
+  }, [showAddedToast]);
 
   useEffect(() => {
     async function fetchMenuAndCategories() {
@@ -235,6 +246,16 @@ export default function MenuPage() {
     <div className="relative min-h-screen flex flex-col justify-between">
       <WelcomePopup duration={3000} logoSrc="/logo/logo.png" />
 
+      {/* NEW: small "Item added to Bucket!" toast — does NOT open the full order bucket */}
+      {showAddedToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-2 bg-emerald-600 text-white px-4 md:px-5 py-3 rounded-sm shadow-lg whitespace-nowrap max-w-[92vw]">
+          <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+          <span className="text-xs md:text-sm font-semibold tracking-wide">
+            Item added to Bucket!
+          </span>
+        </div>
+      )}
+
       <div>
         <Navbar
           cartCount={cartCount}
@@ -312,7 +333,9 @@ export default function MenuPage() {
             isLoading={isLoading}
             onOrderInRestaurant={(item) => {
               addToCart(item);
-              setIsOrderOpen(true);
+              // CHANGED: no longer opens the full order bucket automatically.
+              // Just show a small "Item added to cart" toast instead.
+              setShowAddedToast(true);
             }}
           />
 
@@ -546,6 +569,29 @@ export default function MenuPage() {
           logoSrc="/logo/logo.png"
           onClose={() => setShowSuccessPopup(false)}
         />
+      )}
+
+      {/* NEW: persistent floating "View Order Bucket" bar — always visible when cart has items */}
+      {!isOrderOpen && cartCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setIsOrderOpen(true)}
+          className="fixed bottom-24 md:bottom-5 left-1/2 -translate-x-1/2 z-[9998] flex items-center gap-2 md:gap-3 bg-neutral-950 border border-[#C5A059]/40 text-white pl-2 pr-3 md:pr-4 py-2 rounded-full shadow-2xl hover:border-[#C5A059]/70 transition-colors whitespace-nowrap max-w-[92vw]"
+        >
+          <span className="flex items-center justify-center w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#C5A059] text-neutral-950 text-xs md:text-sm font-bold flex-shrink-0">
+            {cartCount}
+          </span>
+
+          <span className="text-xs md:text-sm font-bold tracking-wide text-white">
+            View Order Bucket
+          </span>
+
+          <span className="text-[#C5A059] font-bold text-xs md:text-sm">
+            Rs. {cartTotal.toLocaleString()}
+          </span>
+
+          <span className="text-[#C5A059] text-base md:text-lg leading-none">→</span>
+        </button>
       )}
 
       <WhatsAppButton
