@@ -4,12 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
-// This root route (/admin-dashboard) is now ONLY a reliable entry-point gate:
-// it checks the admin session and forwards to Orders — which is the new
-// default admin landing page. No matter how someone arrives here (login
-// redirect, browser bookmark, manually typing /admin-dashboard, clicking
-// the sidebar logo, etc.), they will always reliably end up on Orders,
-// or on /admin-login if there is no valid session.
+
 export default function AdminDashboardEntryPage() {
   const router = useRouter();
 
