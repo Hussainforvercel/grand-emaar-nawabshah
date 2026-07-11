@@ -40,6 +40,10 @@ function CategoryBanner({
   name: string;
   imageUrl: string | null;
 }) {
+  const words = name.trim().split(" ");
+  const lastWord = words[words.length - 1];
+  const leadWords = words.slice(0, -1).join(" ");
+
   return (
     <div className="relative w-full h-40 md:h-56 bg-neutral-950 rounded-sm overflow-hidden mb-6">
       {imageUrl && (
@@ -65,11 +69,22 @@ function CategoryBanner({
       <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/85 sm:via-neutral-950/55 to-transparent" />
 
       <div className="relative z-10 h-full flex items-center px-6 md:px-12">
-        <h2
-          className="font-serif italic font-bold text-white text-4xl md:text-6xl tracking-wide"
-          style={{ textShadow: "0 4px 24px rgba(0,0,0,0.55)" }}
-        >
-          {name}
+        <h2 className="leading-none tracking-wide flex flex-wrap items-baseline gap-x-3">
+          {leadWords && (
+            <span className="font-sans font-extrabold uppercase text-white text-2xl md:text-4xl">
+              {leadWords}
+            </span>
+          )}
+
+          <span
+            className="text-[#C5A059] text-4xl md:text-6xl italic"
+            style={{
+              fontFamily: "'Brush Script MT', 'Segoe Script', cursive",
+              textShadow: "0 4px 24px rgba(0,0,0,0.55)",
+            }}
+          >
+            {lastWord}
+          </span>
         </h2>
       </div>
 
