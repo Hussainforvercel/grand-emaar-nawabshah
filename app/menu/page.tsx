@@ -31,6 +31,55 @@ interface CartItem {
   image?: string;
 }
 
+// NEW: dark/gold themed banner shown above each category's dishes,
+// using the image set for that category in Admin > Manage Categories.
+function CategoryBanner({
+  name,
+  imageUrl,
+}: {
+  name: string;
+  imageUrl: string | null;
+}) {
+  return (
+    <div className="relative w-full h-40 md:h-56 bg-neutral-950 rounded-sm overflow-hidden mb-6">
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={name}
+          referrerPolicy="no-referrer"
+          className="absolute inset-y-0 right-0 h-full w-full sm:w-3/4 md:w-2/3 object-cover"
+          style={{
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent 0%, black 35%)",
+            maskImage:
+              "linear-gradient(to right, transparent 0%, black 35%)",
+          }}
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+          }}
+        />
+      )}
+
+      {/* soft blend of the image into the dark background, same idea as the
+          gradient fade used at the bottom of each menu item image */}
+      <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/85 sm:via-neutral-950/55 to-transparent" />
+
+      <div className="relative z-10 h-full flex items-center px-6 md:px-12">
+        <h2
+          className="font-serif italic font-bold text-white text-4xl md:text-6xl tracking-wide"
+          style={{ textShadow: "0 4px 24px rgba(0,0,0,0.55)" }}
+        >
+          {name}
+        </h2>
+      </div>
+
+      {/* purely decorative inner frame for a premium look — does NOT clip
+          or contain the image, the image still reaches the true outer edge */}
+      <div className="pointer-events-none absolute inset-2 md:inset-3 rounded-sm border border-[#C5A059]/70 z-20" />
+    </div>
+  );
+}
+
 export default function MenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>(["All"]);
@@ -50,6 +99,9 @@ export default function MenuPage() {
 
   // NEW: small "Item added to cart" toast (instead of opening the full bucket)
   const [showAddedToast, setShowAddedToast] = useState(false);
+
+  // NEW: category banner images fetched from the menu_categories table
+  const [categoryImages, setCategoryImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const savedCart = localStorage.getItem("grand_emaar_cart");
@@ -114,6 +166,40 @@ export default function MenuPage() {
 
     fetchMenuAndCategories();
   }, []);
+
+  // NEW: fetch each category's banner image (set from Admin > Manage Categories)
+  useEffect(() => {
+    async function fetchCategoryImages() {
+      if (!isSupabaseConfigured || !supabase) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("menu_categories")
+          .select("name, image_url");
+
+        if (error) throw error;
+
+        const imageMap: Record<string, string> = {};
+
+        (data || []).forEach((category: { name: string; image_url: string | null }) => {
+          if (category.name && category.image_url) {
+            imageMap[category.name.trim().toLowerCase()] = category.image_url;
+          }
+        });
+
+        setCategoryImages(imageMap);
+      } catch (error) {
+        console.error("Error fetching category images:", error);
+      }
+    }
+
+    fetchCategoryImages();
+  }, []);
+
+  // NEW: look up a category's banner image (case-insensitive)
+  const getCategoryBannerImage = (categoryName: string) => {
+    return categoryImages[categoryName.trim().toLowerCase()] || null;
+  };
 
   const addToCart = (item: MenuItem) => {
     setCartItems((prev) => {
@@ -194,6 +280,35 @@ export default function MenuPage() {
     });
   }, [items, activeCategory, searchQuery]);
 
+  // NEW: group items by category so each category can show its own dark banner
+  const groupedItems = useMemo(() => {
+    const groups: { category: string; items: MenuItem[] }[] = [];
+    const map = new Map<string, MenuItem[]>();
+
+    filteredItems.forEach((item) => {
+      const cat = item.category || "Other";
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(item);
+    });
+
+    // Preserve the category order used by the category filter tabs.
+    categories
+      .filter((c) => c !== "All")
+      .forEach((cat) => {
+        if (map.has(cat)) {
+          groups.push({ category: cat, items: map.get(cat)! });
+          map.delete(cat);
+        }
+      });
+
+    // Safety net: include any leftover categories not present in `categories`.
+    map.forEach((catItems, cat) => {
+      groups.push({ category: cat, items: catItems });
+    });
+
+    return groups;
+  }, [filteredItems, categories]);
+
   const orderMessage = `Hello Grand Emaar Hotel, I want to place this order:%0A%0A${cartItems
     .map(
       (item) =>
@@ -246,12 +361,12 @@ export default function MenuPage() {
     <div className="relative min-h-screen flex flex-col justify-between">
       <WelcomePopup duration={3000} logoSrc="/logo/logo.png" />
 
-      {/* NEW: small "Item added to cart" toast — does NOT open the full order bucket */}
+      {/* NEW: small "Item added to Bucket!" toast — does NOT open the full order bucket */}
       {showAddedToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-sm shadow-lg">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-2 bg-emerald-600 text-white px-4 md:px-5 py-3 rounded-sm shadow-lg whitespace-nowrap max-w-[92vw]">
           <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-          <span className="text-sm font-semibold tracking-wide">
-            Item added to Bucket
+          <span className="text-xs md:text-sm font-semibold tracking-wide">
+            Item added to Bucket!
           </span>
         </div>
       )}
@@ -328,16 +443,33 @@ export default function MenuPage() {
             />
           </div>
 
-          <MenuGrid
-            items={filteredItems}
-            isLoading={isLoading}
-            onOrderInRestaurant={(item) => {
-              addToCart(item);
-              // CHANGED: no longer opens the full order bucket automatically.
-              // Just show a small "Item added to cart" toast instead.
-              setShowAddedToast(true);
-            }}
-          />
+          {isLoading ? (
+            <MenuGrid items={[]} isLoading={true} />
+          ) : groupedItems.length === 0 ? (
+            <MenuGrid items={[]} isLoading={false} />
+          ) : (
+            <div className="space-y-14">
+              {groupedItems.map((group) => (
+                <div key={group.category}>
+                  <CategoryBanner
+                    name={group.category}
+                    imageUrl={getCategoryBannerImage(group.category)}
+                  />
+
+                  <MenuGrid
+                    items={group.items}
+                    isLoading={false}
+                    onOrderInRestaurant={(item) => {
+                      addToCart(item);
+                      // CHANGED: no longer opens the full order bucket automatically.
+                      // Just show a small "Item added to cart" toast instead.
+                      setShowAddedToast(true);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
 
           {!isLoading && items.length === 0 && (
             <div className="mt-10 max-w-xl mx-auto text-center px-5 py-6 bg-neutral-50 border border-neutral-200 rounded-sm">
@@ -576,21 +708,21 @@ export default function MenuPage() {
         <button
           type="button"
           onClick={() => setIsOrderOpen(true)}
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[9998] flex items-center gap-3 bg-neutral-950 border border-[#C5A059]/40 text-white pl-2 pr-4 py-2 rounded-full shadow-2xl hover:border-[#C5A059]/70 transition-colors"
+          className="fixed bottom-24 md:bottom-5 left-1/2 -translate-x-1/2 z-[9998] flex items-center gap-2 md:gap-3 bg-neutral-950 border border-[#C5A059]/40 text-white pl-2 pr-3 md:pr-4 py-2 rounded-full shadow-2xl hover:border-[#C5A059]/70 transition-colors whitespace-nowrap max-w-[92vw]"
         >
-          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#C5A059] text-neutral-950 text-sm font-bold">
+          <span className="flex items-center justify-center w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#C5A059] text-neutral-950 text-xs md:text-sm font-bold flex-shrink-0">
             {cartCount}
           </span>
 
-          <span className="text-sm font-bold tracking-wide text-white">
+          <span className="text-xs md:text-sm font-bold tracking-wide text-white">
             View Order Bucket
           </span>
 
-          <span className="text-[#C5A059] font-bold text-sm">
+          <span className="text-[#C5A059] font-bold text-xs md:text-sm">
             Rs. {cartTotal.toLocaleString()}
           </span>
 
-          <span className="text-[#C5A059] text-lg leading-none">→</span>
+          <span className="text-[#C5A059] text-base md:text-lg leading-none">→</span>
         </button>
       )}
 
